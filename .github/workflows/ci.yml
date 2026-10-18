@@ -1,0 +1,34 @@
+# ============================================================================
+#  famulus - CI placeholder
+#
+#  Why this file is "empty": GitHub rejects a workflow that declares no job,
+#  so the smallest valid CI is one job with one placeholder step. That job id
+#  is the contract the branch rulesets depend on:
+#
+#      jobs.build  ->  status check context "build"
+#
+#  Do not rename the job. main has no bypass actor, so if the "build" context
+#  stops appearing, no pull request can be merged until the ruleset changes.
+#
+#  There is no CMake skeleton yet, so there is nothing to configure, build or
+#  test. When sources land, replace the placeholder step with the real steps
+#  and keep the job id as "build".
+# ============================================================================
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+# Least privilege: the job only needs to read the repository.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "No build steps yet - see the header of this file."
