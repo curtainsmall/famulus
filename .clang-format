@@ -8,21 +8,6 @@
 #  Every rule below is reproducible by clang-format, so `clang-format
 #  --dry-run --Werror` can gate a commit or a CI job. That is the whole point
 #  of this file: no convention here depends on a human remembering it.
-#
-#  Four idioms that a hand-maintained Allman style usually carries cannot be
-#  expressed by any clang-format option, so they are normalized to the tool's
-#  own form instead:
-#
-#    1. Constructor initializer colon. A hand style may write "):" on its own
-#       line; clang-format writes the colon on the next line
-#       (BreakConstructorInitializers: BeforeColon). Only the latter is stable.
-#    2. Multi-line call argument lists. A hand style may break a short call and
-#       put ")" on its own line; clang-format re-joins anything that fits.
-#       Breaks therefore happen only when the line exceeds ColumnLimit.
-#    3. Variadic packs. A hand style may write "class ...Args"/"Args&& ...args";
-#       clang-format always writes "class... Args"/"Args&&... args".
-#    4. Template parameter lists. A hand style may expand every template head;
-#       clang-format keeps it inline when it fits.
 # ============================================================================
 ---
 Language: Cpp
