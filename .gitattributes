@@ -1,14 +1,17 @@
 # ============================================================================
 #  famulus - .gitattributes for a C++ project
-#  Policy: text is stored with LF in the repository and checked out in the
-#  convention each platform expects.
+#  Policy: LF everywhere - in the repository and in the working tree on every
+#  platform - except the Windows toolchain files pinned to CRLF below.
+#  This overrides core.autocrlf, so a clone is LF whatever the machine is set to.
 #  Reference: https://git-scm.com/docs/gitattributes
 # ============================================================================
 
 # ---------------------------------------------------------------------------
-# Default: let Git detect text vs. binary and normalize text to LF on commit
+# Default: text is detected automatically and kept LF on commit AND on checkout
+# eol=lf is explicit so that core.autocrlf=true cannot rewrite the working tree
+# to CRLF. A per-extension rule below still wins where CRLF is required.
 # ---------------------------------------------------------------------------
-* text=auto
+* text=auto eol=lf
 
 # ---------------------------------------------------------------------------
 # C / C++ sources and headers: explicitly text, with the cpp diff driver
