@@ -1,0 +1,241 @@
+# ============================================================================
+#  famulus - .gitignore for a C++ project
+#  Rules are grouped by artifact class. To keep something, add a "!" rule
+#  inside the matching group.
+#
+#  NOTE: Git only treats "#" at the very start of a line as a comment.
+#  Never put a trailing comment on the same line as a pattern - the pattern
+#  would include the comment text and silently match nothing.
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Build directories (common CMake / Ninja / Make output locations)
+# ---------------------------------------------------------------------------
+build/
+build-*/
+_build/
+out/
+out-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+# compile_commands.json is generated at configure time.
+# Delete the next line if the team decides to commit it.
+compile_commands.json
+# CMakeUserPresets.json holds machine-local presets; CMakePresets.json is tracked.
+CMakeUserPresets.json
+.ninja_deps
+.ninja_log
+.ninja_log.tmp
+
+# ---------------------------------------------------------------------------
+# Compiler intermediates
+# ---------------------------------------------------------------------------
+*.o
+*.obj
+*.lo
+*.slo
+*.gch
+*.pch
+*.d
+*.dSYM/
+*.stackdump
+*.sym
+
+# ---------------------------------------------------------------------------
+# Static / shared libraries and executables
+# ---------------------------------------------------------------------------
+*.a
+*.lib
+*.la
+*.so
+*.so.*
+*.dylib
+*.dll
+*.dll.a
+*.exe
+*.out
+*.elf
+*.app/
+*.wasm
+
+# ---------------------------------------------------------------------------
+# Debug info / profiling output
+# ---------------------------------------------------------------------------
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.ipdb
+*.iobj
+*.gcda
+*.gcno
+*.gcov
+*.lcov
+*.profraw
+*.profdata
+perf.data
+perf.data.old
+callgrind.out.*
+massif.out.*
+
+# ---------------------------------------------------------------------------
+# Visual Studio / MSVC
+# Debug/, Release/, x64/ and similar are anchored to the repository root so
+# they cannot shadow a source directory of the same name. Drop the leading
+# "/" if your multi-config output lives at another level.
+# ---------------------------------------------------------------------------
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.ncb
+*.sdf
+*.opensdf
+*.aps
+*.cachefile
+*.tlog
+*.lastbuildstate
+ipch/
+/Debug/
+/Release/
+/RelWithDebInfo/
+/MinSizeRel/
+/x64/
+/x86/
+/ARM/
+/ARM64/
+
+# ---------------------------------------------------------------------------
+# CLion / JetBrains
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ---------------------------------------------------------------------------
+# Xcode
+# ---------------------------------------------------------------------------
+xcuserdata/
+DerivedData/
+*.xcscmblueprint
+*.xccheckout
+
+# ---------------------------------------------------------------------------
+# VS Code: keep team-shared config, ignore per-user state and local caches
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/c_cpp_properties.json
+
+# ---------------------------------------------------------------------------
+# clangd / ccls / index and compile caches
+# ---------------------------------------------------------------------------
+.cache/
+.ccls-cache/
+.ccache/
+ccache/
+.clangd-cache/
+
+# ---------------------------------------------------------------------------
+# Dependency managers
+# ---------------------------------------------------------------------------
+vcpkg_installed/
+# Uncomment to ignore vcpkg's own sources when it is vendored into the tree:
+# vcpkg/
+conan/
+conanbuildinfo.*
+conaninfo.txt
+graph_info.json
+CPM.cache/
+_deps/
+_lib/
+*.gclient_entries
+.gclient
+.gclient_entries
+.gclient_previous_custom_vars
+.gclient_previous_sync_commits
+
+# ---------------------------------------------------------------------------
+# Coverage / test output
+# ---------------------------------------------------------------------------
+coverage/
+coverage.info
+htmlcov/
+Testing/
+test-results/
+*.junit.xml
+
+# ---------------------------------------------------------------------------
+# Archives and installers
+# ---------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.tar.bz2
+*.7z
+*.rar
+*.deb
+*.rpm
+*.msi
+*.nupkg
+
+# ---------------------------------------------------------------------------
+# Runtime artifacts
+# ---------------------------------------------------------------------------
+*.log
+logs/
+core
+core.*
+*.dmp
+*.mdmp
+*.trace
+*.crash
+
+# ---------------------------------------------------------------------------
+# Script / tooling caches
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+
+# ---------------------------------------------------------------------------
+# Local secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+
+# ---------------------------------------------------------------------------
+# OS / editor leftovers
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+*.swp
+*.swo
+*.bak
+*.orig
+*.rej
+.Trash-*

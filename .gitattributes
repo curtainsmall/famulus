@@ -1,0 +1,171 @@
+# ============================================================================
+#  famulus - .gitattributes for a C++ project
+#  Policy: text is stored with LF in the repository and checked out in the
+#  convention each platform expects.
+#  Reference: https://git-scm.com/docs/gitattributes
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Default: let Git detect text vs. binary and normalize text to LF on commit
+# ---------------------------------------------------------------------------
+* text=auto
+
+# ---------------------------------------------------------------------------
+# C / C++ sources and headers: explicitly text, with the cpp diff driver
+# (hunk headers name the enclosing function, which makes reviews easier)
+# ---------------------------------------------------------------------------
+*.c             text diff=cpp
+*.h             text diff=cpp
+*.cc            text diff=cpp
+*.hh            text diff=cpp
+*.cp            text diff=cpp
+*.cpp           text diff=cpp
+*.cxx           text diff=cpp
+*.hpp           text diff=cpp
+*.hxx           text diff=cpp
+*.h++           text diff=cpp
+*.c++           text diff=cpp
+*.inl           text diff=cpp
+*.ipp           text diff=cpp
+*.tpp           text diff=cpp
+*.tcc           text diff=cpp
+*.ixx           text diff=cpp
+*.cppm          text diff=cpp
+*.mpp           text diff=cpp
+*.cu            text diff=cpp
+*.cuh           text diff=cpp
+*.m             text diff=objc
+*.mm            text diff=objc
+*.asm           text
+*.s             text
+*.S             text
+*.inc           text
+*.rc            text
+*.def           text
+*.natvis        text
+
+# ---------------------------------------------------------------------------
+# Build scripts and configuration
+# ---------------------------------------------------------------------------
+CMakeLists.txt  text
+*.cmake         text
+*.cmake.in      text
+*.in            text
+*.json          text
+*.yml           text
+*.yaml          text
+*.toml          text
+*.ini           text
+*.conf          text
+*.txt           text
+*.md            text
+*.sh            text eol=lf
+*.bash          text eol=lf
+*.py            text eol=lf
+
+# ---------------------------------------------------------------------------
+# Windows toolchain files are pinned to CRLF (PowerShell / batch / MSBuild)
+# MSBuild and .sln tolerate LF inconsistently; pinning CRLF stops Visual
+# Studio from rewriting project files on every save.
+# ---------------------------------------------------------------------------
+*.sln                  text eol=crlf
+*.vcxproj              text eol=crlf
+*.vcxproj.filters      text eol=crlf
+*.vcxproj.user         text eol=crlf
+*.props                text eol=crlf
+*.targets              text eol=crlf
+*.bat                  text eol=crlf
+*.cmd                  text eol=crlf
+*.ps1                  text eol=crlf
+*.psm1                 text eol=crlf
+*.psd1                 text eol=crlf
+
+# ---------------------------------------------------------------------------
+# Binaries: never normalize line endings, never diff as text
+# ---------------------------------------------------------------------------
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.bmp           binary
+*.tga           binary
+*.webp          binary
+*.ico           binary
+*.icns          binary
+*.psd           binary
+*.ttf           binary
+*.otf           binary
+*.woff          binary
+*.woff2         binary
+*.pdf           binary
+*.zip           binary
+*.gz            binary
+*.bz2           binary
+*.xz            binary
+*.7z            binary
+*.rar           binary
+*.exe           binary
+*.dll           binary
+*.lib           binary
+*.a             binary
+*.so            binary
+*.dylib         binary
+*.o             binary
+*.obj           binary
+*.pdb           binary
+*.ilk           binary
+*.bin           binary
+*.dat           binary
+*.onnx          binary
+*.pt            binary
+*.wav           binary
+*.mp3           binary
+*.ogg           binary
+*.flac          binary
+*.mp4           binary
+*.glb           binary
+*.fbx           binary
+
+# ---------------------------------------------------------------------------
+# This repository's own metadata
+# ---------------------------------------------------------------------------
+.gitignore              text eol=lf
+.gitattributes          text eol=lf
+.gitmodules             text eol=lf
+.git-blame-ignore-revs  text eol=lf
+
+# ---------------------------------------------------------------------------
+# Language statistics: vendored code must not skew the reported breakdown
+# ---------------------------------------------------------------------------
+third_party/**   linguist-vendored
+thirdparty/**    linguist-vendored
+third-party/**   linguist-vendored
+3rdparty/**      linguist-vendored
+external/**      linguist-vendored
+vendor/**        linguist-vendored
+docs/**          linguist-documentation
+*.pb.cc          linguist-generated
+*.pb.h           linguist-generated
+*.g.cs           linguist-generated
+*.generated.*    linguist-generated
+
+# ---------------------------------------------------------------------------
+# Exclude development-only files from "git archive" exports
+# ---------------------------------------------------------------------------
+/.github/       export-ignore
+/.vscode/       export-ignore
+/.editorconfig  export-ignore
+/.gitignore     export-ignore
+/.gitattributes export-ignore
+/.gitmodules    export-ignore
+/tests/         export-ignore
+
+# ---------------------------------------------------------------------------
+# Note: if this repository ever has to hold GBK/GB18030-encoded sources,
+# declare them per path so the repository still stores UTF-8 while the
+# Windows work tree converts on checkout:
+#
+#   src/legacy/*.cpp  text working-tree-encoding=GBK
+#
+# This needs a recent Git and transcodes on add/checkout - use sparingly.
+# ---------------------------------------------------------------------------
