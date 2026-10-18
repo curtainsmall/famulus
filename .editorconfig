@@ -28,7 +28,8 @@ indent_size = 4
 [*.{c,h,cc,hh,cp,cpp,cxx,hpp,hxx,h++,c++,inl,ipp,tpp,tcc,ixx,cppm,mpp,cu,cuh,m,mm}]
 indent_style = space
 indent_size = 4
-max_line_length = 100
+# Must match ColumnLimit in .clang-format
+max_line_length = 120
 
 # ---------------------------------------------------------------------------
 # CMake, YAML, JSON and other indentation-sensitive config: two spaces

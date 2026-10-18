@@ -1,0 +1,102 @@
+# ============================================================================
+#  famulus C++ style - Allman based, fully machine enforceable.
+#
+#  Minimum tool version: clang-format 18
+#  (needs BreakAfterAttributes, RequiresClausePosition, IndentRequiresClause,
+#   InsertBraces, QualifierAlignment)
+#
+#  Every rule below is reproducible by clang-format, so `clang-format
+#  --dry-run --Werror` can gate a commit or a CI job. That is the whole point
+#  of this file: no convention here depends on a human remembering it.
+#
+#  Four idioms that a hand-maintained Allman style usually carries cannot be
+#  expressed by any clang-format option, so they are normalized to the tool's
+#  own form instead:
+#
+#    1. Constructor initializer colon. A hand style may write "):" on its own
+#       line; clang-format writes the colon on the next line
+#       (BreakConstructorInitializers: BeforeColon). Only the latter is stable.
+#    2. Multi-line call argument lists. A hand style may break a short call and
+#       put ")" on its own line; clang-format re-joins anything that fits.
+#       Breaks therefore happen only when the line exceeds ColumnLimit.
+#    3. Variadic packs. A hand style may write "class ...Args"/"Args&& ...args";
+#       clang-format always writes "class... Args"/"Args&&... args".
+#    4. Template parameter lists. A hand style may expand every template head;
+#       clang-format keeps it inline when it fits.
+# ============================================================================
+---
+Language: Cpp
+Standard: c++20
+BasedOnStyle: LLVM
+
+# ---------------------------------------------------------------------------
+# Layout: 4 spaces, Allman braces, indented namespaces, 120 columns
+# ---------------------------------------------------------------------------
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+MaxEmptyLinesToKeep: 1
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+AccessModifierOffset: -4
+EmptyLineBeforeAccessModifier: Never
+EmptyLineAfterAccessModifier: Never
+IndentCaseLabels: true
+SeparateDefinitionBlocks: Leave
+
+# ---------------------------------------------------------------------------
+# Spacing: no space before control-statement parens, left-bound pointers,
+# spaces inside braced init lists, no space after the template keyword
+# ---------------------------------------------------------------------------
+SpaceBeforeParens: Never
+SpaceBeforeInheritanceColon: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceAfterTemplateKeyword: false
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+QualifierAlignment: Left
+
+# ---------------------------------------------------------------------------
+# Declarations: attributes and requires clauses on their own line, trailing
+# return types, one base class / one initializer per line
+# ---------------------------------------------------------------------------
+BreakAfterAttributes: Always
+RequiresClausePosition: OwnLine
+IndentRequiresClause: true
+AlwaysBreakTemplateDeclarations: Yes
+BreakInheritanceList: AfterColon
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+# ---------------------------------------------------------------------------
+# Wrapping: block-indented, one argument or parameter per line when a break
+# is needed (no trailing bin packing)
+# ---------------------------------------------------------------------------
+AlignAfterOpenBracket: BlockIndent
+BinPackArguments: false
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# ---------------------------------------------------------------------------
+# Braces are always inserted and never collapse onto one line
+# ---------------------------------------------------------------------------
+InsertBraces: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+
+# ---------------------------------------------------------------------------
+# Includes: the author keeps the block grouping, the tool sorts inside a block.
+# Decide the group order once (own header, then <system>, then project) and
+# clang-format maintains it.
+# ---------------------------------------------------------------------------
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+FixNamespaceComments: false
