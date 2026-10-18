@@ -133,6 +133,9 @@ CMakeLists.txt  text
 .gitattributes          text eol=lf
 .gitmodules             text eol=lf
 .git-blame-ignore-revs  text eol=lf
+.editorconfig           text eol=lf
+.clang-format           text eol=lf
+.clang-tidy             text eol=lf
 
 # ---------------------------------------------------------------------------
 # Language statistics: vendored code must not skew the reported breakdown

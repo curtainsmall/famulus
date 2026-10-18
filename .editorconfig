@@ -1,0 +1,84 @@
+# ============================================================================
+#  famulus - .editorconfig
+#  Editor-level basics only: encoding, line endings, indentation, trailing
+#  whitespace. Code style (brace placement, pointer alignment, wrapping) is
+#  the job of .clang-format, which does not read this file.
+#
+#  Scope: affects what an editor writes from now on. It never rewrites
+#  existing files, and Git itself ignores it (see .gitattributes).
+#  Spec: https://editorconfig.org
+# ============================================================================
+
+root = true
+
+# ---------------------------------------------------------------------------
+# Everything
+# ---------------------------------------------------------------------------
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ---------------------------------------------------------------------------
+# C / C++ sources and headers
+# ---------------------------------------------------------------------------
+[*.{c,h,cc,hh,cp,cpp,cxx,hpp,hxx,h++,c++,inl,ipp,tpp,tcc,ixx,cppm,mpp,cu,cuh,m,mm}]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# ---------------------------------------------------------------------------
+# CMake, YAML, JSON and other indentation-sensitive config: two spaces
+# ---------------------------------------------------------------------------
+[*.{cmake,txt,in,yml,yaml,json,toml,ini,conf}]
+indent_style = space
+indent_size = 2
+
+[CMakeLists.txt]
+indent_style = space
+indent_size = 2
+
+# ---------------------------------------------------------------------------
+# Shell and Python scripts
+# ---------------------------------------------------------------------------
+[*.{sh,bash,py}]
+indent_style = space
+indent_size = 2
+
+# ---------------------------------------------------------------------------
+# Windows toolchain files: CRLF, matching .gitattributes
+# MSBuild and .sln handle LF inconsistently, so keep them CRLF here too and
+# avoid Visual Studio rewriting the files on every save.
+# ---------------------------------------------------------------------------
+[*.{sln,vcxproj,props,targets,bat,cmd,ps1,psm1,psd1}]
+end_of_line = crlf
+
+[*.vcxproj.filters]
+end_of_line = crlf
+
+# ---------------------------------------------------------------------------
+# Makefiles require real tabs
+# ---------------------------------------------------------------------------
+[Makefile]
+indent_style = tab
+indent_size = 1
+
+[*.mk]
+indent_style = tab
+indent_size = 1
+
+# ---------------------------------------------------------------------------
+# Markdown: trailing double spaces are meaningful (hard line break)
+# ---------------------------------------------------------------------------
+[*.md]
+trim_trailing_whitespace = false
+
+# ---------------------------------------------------------------------------
+# Patches and diffs must keep their exact whitespace
+# ---------------------------------------------------------------------------
+[*.{patch,diff}]
+trim_trailing_whitespace = false
+insert_final_newline = false
