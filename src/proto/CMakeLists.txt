@@ -1,5 +1,5 @@
-# ============================================================================
-#  proto/ - the only contract every process shares
+﻿# ============================================================================
+#  src/proto/ - the only contract every process shares
 #
 #  The contract itself does not exist yet. This target exists so core/ and the
 #  shells have one thing to depend on once the schema lands; the directories it

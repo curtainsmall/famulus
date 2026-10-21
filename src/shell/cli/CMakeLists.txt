@@ -1,5 +1,5 @@
-# ============================================================================
-#  shell/cli/ - famulusctl
+﻿# ============================================================================
+#  src/shell/cli/ - famulusctl
 #
 #  The headless shell. A terminal is a surface like any other, just with the
 #  smallest capability set: no notifications, no rich text, no forms. Artifacts

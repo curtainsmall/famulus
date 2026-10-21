@@ -1,19 +1,21 @@
-# ============================================================================
+﻿# ============================================================================
 #  famulus - top level
 #
 #  Layout and the boundaries it encodes:
 #
-#    proto/   the contract every process shares (IPC, artifacts, blocks)
-#    core/    the brain: policy, state, providers, tools, IPC server
-#    os/      the OS adapter: the only holder of system authority
-#    shell/   the surfaces: cli and win, both protocol clients
-#    tests/   every test: unit, test doubles and cross-process integration
+#    src/proto/     the contract every process shares (IPC, artifacts, blocks)
+#    src/core/      the brain: policy, state, providers, tools, IPC server
+#    src/os/        the OS adapter: the only holder of system authority
+#    src/daemon/    the famulusd entry point, a sibling of core/ so the library
+#                   can never pick it up
+#    src/shell/     the surfaces: cli and win-desktop, both protocol clients
+#    tests/         every test, deliberately outside src/ because no test ships
 #
 #  The boundaries are enforced by the link graph, not by directory layout:
-#  os/ never links core/, and shell/ links neither core/ nor os/.
+#  src/os never links src/core, and src/shell links neither.
 #
 #  Language roles: C++20 is the project language, C99 is the boundary language
-#  (os/api/famulus_os.h), Objective-C++ is allowed inside os/mac only.
+#  (src/os/api/famulus_os.h), Objective-C++ is allowed inside src/os/macos only.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 
@@ -45,10 +47,11 @@ include(FamulusDependencies)
 include(FamulusTesting)
 include(FamulusTargets)
 
-add_subdirectory(proto)
-add_subdirectory(os)
-add_subdirectory(core)
-add_subdirectory(shell)
+add_subdirectory(src/proto)
+add_subdirectory(src/os)
+add_subdirectory(src/core)
+add_subdirectory(src/daemon)
+add_subdirectory(src/shell)
 add_subdirectory(tests)
 
 message(STATUS "famulus ${PROJECT_VERSION}: os=${FAMULUS_OS} tests=${FAMULUS_BUILD_TESTS} shell=${FAMULUS_BUILD_SHELL} werror=${FAMULUS_WERROR}")

@@ -1,14 +1,14 @@
 # ============================================================================
-#  os/ - the OS adapter, the only holder of system authority
+#  src/os/ - the OS adapter, the only holder of system authority
 #
-#  famulus_os_api carries os/api/famulus_os.h, the pure C99 contract. An
+#  famulus_os_api carries src/os/api/famulus_os.h, the pure C99 contract. An
 #  adapter may include that header and nothing else from this project - it does
-#  not link core/, never includes a core header, and has no idea what an
-#  artifact or a session is.
+#  not link core, never includes a core header, and has no idea what an artifact
+#  or a session is.
 #
 #  Exactly one adapter is built as famulus_os_<platform> and linked into
-#  famulusd. os/null builds anywhere and returns FAM_E_UNSUPPORTED from every
-#  entry point, which is both the server variant and the portability gate.
+#  famulusd. The null adapter builds anywhere and returns FAM_E_UNSUPPORTED from
+#  every entry point, which is both the server variant and the portability gate.
 #
 #  Every directory here is created by whoever adds the first file to it: the
 #  globs and the include guard below make an empty os/ legitimate, so nothing

@@ -1,5 +1,5 @@
-# ============================================================================
-#  shell/win/ - famulus-ui, the Windows shell
+﻿# ============================================================================
+#  src/shell/win-desktop/ - famulus_ui, the Windows desktop shell
 #
 #  Native, not a cross-platform shell pretending: an overlay that does not steal
 #  focus, a tabbed main window, and a notification adapter that hands artifacts
@@ -12,13 +12,13 @@
 #  identity, so do not.
 # ============================================================================
 
-famulus_executable(famulus-ui app)
+famulus_executable(famulus_ui app)
 
-if(TARGET famulus-ui)
-    target_link_libraries(famulus-ui PRIVATE famulus_proto)
+if(TARGET famulus_ui)
+    target_link_libraries(famulus_ui PRIVATE famulus_proto)
 
     if(WIN32)
         # A GUI subsystem binary: no console window behind the overlay.
-        set_target_properties(famulus-ui PROPERTIES WIN32_EXECUTABLE TRUE)
+        set_target_properties(famulus_ui PROPERTIES WIN32_EXECUTABLE TRUE)
     endif()
 endif()

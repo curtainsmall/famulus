@@ -6,7 +6,7 @@
 # ============================================================================
 
 option(FAMULUS_BUILD_TESTS "Build unit and integration test targets" ON)
-option(FAMULUS_BUILD_SHELL "Build the shells (famulusctl, famulus-ui)" ON)
+option(FAMULUS_BUILD_SHELL "Build the shells (famulusctl, famulus_ui)" ON)
 option(FAMULUS_WERROR "Treat compiler warnings as errors in first-party targets" ON)
 option(FAMULUS_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer (GCC/Clang only)" OFF)
 
@@ -19,5 +19,5 @@ option(FAMULUS_FETCH_DEPS "Populate third-party dependencies with FetchContent" 
 # The OS adapter linked into famulusd. Left empty, FamulusPlatform picks the
 # host's adapter. Setting it to "null" proves core/ builds with no platform
 # code at all - that is the portability gate CI runs.
-set(FAMULUS_OS "" CACHE STRING "OS adapter to link: win | mac | linux | null | mock")
-set_property(CACHE FAMULUS_OS PROPERTY STRINGS win mac linux null mock)
+set(FAMULUS_OS "" CACHE STRING "OS adapter to link: windows | macos | linux | null | mock")
+set_property(CACHE FAMULUS_OS PROPERTY STRINGS windows macos linux null mock)

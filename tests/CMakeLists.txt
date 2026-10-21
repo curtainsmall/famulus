@@ -37,7 +37,7 @@ if(TARGET famulus_unit_tests)
     if(TARGET famulus_core)
         target_link_libraries(famulus_unit_tests PRIVATE famulus_core)
     else()
-        message(FATAL_ERROR "unit tests exist but famulus_core does not: add sources under core/src/")
+        message(FATAL_ERROR "unit tests exist but famulus_core does not: add sources under src/core/")
     endif()
 
     if(TARGET famulus_os_mock)
