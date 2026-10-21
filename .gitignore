@@ -196,8 +196,12 @@ test-results/
 # ---------------------------------------------------------------------------
 *.log
 logs/
-core
+# Core dumps. The bare "core" name is deliberately NOT listed: it matched the
+# core/ source directory, and a "!core/" negation only half-fixes it because
+# tools that call `git check-ignore` on a directory still see a matching
+# pattern. Extension-less dumps are rare here and land in build/ anyway.
 core.*
+vgcore.*
 *.dmp
 *.mdmp
 *.trace
