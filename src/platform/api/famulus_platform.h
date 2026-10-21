@@ -121,6 +121,25 @@ void fam_platform_shutdown(void);
  * the daemon is how a sandboxed build breaks later. */
 fam_status_t fam_platform_paths(enum fam_path_kind kind, char* buf, size_t* inout_len);
 
+/* A global hotkey. `accelerator` is "Ctrl+Alt+Shift+Win" prefixes followed by one
+ * key: A-Z, 0-9, F1-F24, Space, Enter, Tab, Esc. The platform registers it and
+ * posts one "hotkey.pressed" event per press, with the accelerator in the
+ * payload; it never decides what a press means.
+ *
+ * `out_id` identifies the binding and must be passed back to unbind. Zero is
+ * never a valid id. */
+fam_status_t fam_platform_hotkey_bind(const char* accelerator, uint32_t* out_id);
+fam_status_t fam_platform_hotkey_unbind(uint32_t id);
+
+/* Secret storage. `name` is 1..64 characters of [A-Za-z0-9._-]; anything else is
+ * FAM_E_INVALID, so a name can never escape its directory. Values are opaque
+ * bytes, encrypted at rest by the platform.
+ *
+ * A missing secret is FAM_E_DENIED, not an empty value. */
+fam_status_t fam_platform_secret_set(const char* name, const void* data, size_t size);
+fam_status_t fam_platform_secret_get(const char* name, unsigned char* buf, size_t* inout_len);
+fam_status_t fam_platform_secret_delete(const char* name);
+
 #ifdef __cplusplus
 }
 #endif

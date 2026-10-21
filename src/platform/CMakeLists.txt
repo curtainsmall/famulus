@@ -57,6 +57,14 @@ if(TARGET ${FAMULUS_PLATFORM_ADAPTER})
         source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/api" PREFIX "api"
             FILES ${FAMULUS_PLATFORM_HEADERS})
     endif()
+
+    # Capability implementations reach for Win32 libraries the compiler does not
+    # link by default; the rest (user32, advapi32) already are. Kept here rather
+    # than in an adapter-local file because it is one line and this is the file
+    # that decides what an adapter is.
+    if(FAMULUS_PLATFORM STREQUAL "windows")
+        target_link_libraries(${FAMULUS_PLATFORM_ADAPTER} PRIVATE crypt32)
+    endif()
 endif()
 
 # --- the facade ------------------------------------------------------------
