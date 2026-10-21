@@ -15,6 +15,8 @@
 #  goes through famulus_platform.h, and only core/bridge/ includes it at all.
 # ============================================================================
 
+set(CMAKE_FOLDER "core")
+
 set(CORE_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
 
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS

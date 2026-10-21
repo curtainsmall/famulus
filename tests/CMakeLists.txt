@@ -18,6 +18,8 @@
 # Built here because nothing in the product links it: famulusd links a real
 # adapter, and a shell never links an adapter implementation at all.
 
+set(CMAKE_FOLDER "tests")
+
 famulus_library(famulus_platform_mock STATIC support/platform_mock/src)
 
 if(TARGET famulus_platform_mock)

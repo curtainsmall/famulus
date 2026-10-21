@@ -9,6 +9,8 @@
 #  Links base and platform (for framing and the transport), never core.
 # ============================================================================
 
+set(CMAKE_FOLDER "shell")
+
 famulus_executable(famulus_shell_cli src)
 
 if(TARGET famulus_shell_cli)

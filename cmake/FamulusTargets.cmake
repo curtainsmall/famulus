@@ -12,6 +12,15 @@
 #  whose link language CMake cannot infer.
 # ============================================================================
 
+# famulus_group_sources(<target> <sources>...)
+#
+# Keeps a project's own tree in the IDE instead of one flat "Source Files"
+# folder, so a project mirrors src/ the way the repository does. Ignored by
+# generators that have no concept of source groups.
+function(famulus_group_sources target)
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES ${ARGN})
+endfunction()
+
 # famulus_collect_sources(<out_var> <subdir>...)
 function(famulus_collect_sources out)
     set(_sources "")
@@ -48,6 +57,7 @@ function(famulus_library name kind)
 
     add_library(${name} ${kind} ${_sources})
     famulus_apply_warnings(${name})
+    famulus_group_sources(${name} ${_sources})
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
@@ -62,6 +72,7 @@ function(famulus_executable name)
 
     add_executable(${name} ${_sources})
     famulus_apply_warnings(${name})
+    famulus_group_sources(${name} ${_sources})
 endfunction()
 
 # famulus_test_target(<name> <subdir>...)
@@ -81,6 +92,7 @@ function(famulus_test_target name)
 
     add_executable(${name} ${_sources})
     famulus_apply_warnings(${name})
+    famulus_group_sources(${name} ${_sources})
     target_link_libraries(${name} PRIVATE GTest::gtest_main)
     gtest_discover_tests(${name})
 endfunction()

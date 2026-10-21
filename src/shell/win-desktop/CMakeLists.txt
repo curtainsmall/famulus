@@ -10,6 +10,8 @@
 #  Links base and platform, never core.
 # ============================================================================
 
+set(CMAKE_FOLDER "shell")
+
 famulus_executable(famulus_shell_win_desktop src)
 
 if(TARGET famulus_shell_win_desktop)

@@ -9,6 +9,8 @@
 #  This is the same role VS Code gives src/vs/base and systemd gives src/basic.
 # ============================================================================
 
+set(CMAKE_FOLDER "lib")
+
 famulus_library(famulus_base STATIC src)
 
 if(TARGET famulus_base)

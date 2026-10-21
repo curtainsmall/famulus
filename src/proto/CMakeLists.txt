@@ -12,6 +12,8 @@
 #  proto/ is not a broken proto/.
 # ============================================================================
 
+set(CMAKE_FOLDER "lib")
+
 add_library(famulus_proto INTERFACE)
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")

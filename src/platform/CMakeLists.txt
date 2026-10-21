@@ -20,6 +20,8 @@
 #  tree. It never includes a core header and has no idea what a session is.
 # ============================================================================
 
+set(CMAKE_FOLDER "platform")
+
 set(FAMULUS_PLATFORM_ADAPTER "famulus_platform_${FAMULUS_PLATFORM}")
 
 # --- the headers -----------------------------------------------------------
@@ -31,6 +33,13 @@ if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/api")
         "${CMAKE_CURRENT_SOURCE_DIR}/api")
 endif()
 
+# The contract headers belong to an INTERFACE target, and an INTERFACE target
+# generates no IDE project - so without this they are invisible in the solution.
+# Attaching them to the adapter, the only project in this directory, puts them
+# where a reader looks for them.
+file(GLOB FAMULUS_PLATFORM_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/api/*.h")
+
 # --- the selected adapter --------------------------------------------------
 
 famulus_library(${FAMULUS_PLATFORM_ADAPTER} STATIC "${FAMULUS_PLATFORM}")
@@ -41,6 +50,12 @@ if(TARGET ${FAMULUS_PLATFORM_ADAPTER})
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${FAMULUS_PLATFORM}/include")
         target_include_directories(${FAMULUS_PLATFORM_ADAPTER} PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/${FAMULUS_PLATFORM}/include")
+    endif()
+
+    if(FAMULUS_PLATFORM_HEADERS)
+        target_sources(${FAMULUS_PLATFORM_ADAPTER} PRIVATE ${FAMULUS_PLATFORM_HEADERS})
+        source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/api" PREFIX "api"
+            FILES ${FAMULUS_PLATFORM_HEADERS})
     endif()
 endif()
 
