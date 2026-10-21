@@ -35,6 +35,6 @@ Not end-user documentation. Nothing here ships.
 ```
 cmake --preset win-msvc
 cmake --build --preset win-debug
-build/win-msvc/src/core/Debug/famulusd.exe --help
+build/win-msvc/src/core/Debug/famulusd.exe   # prints: hello world
 cmake --preset win-null        # portability gate: must always configure
 ```

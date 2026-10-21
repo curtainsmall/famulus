@@ -9,10 +9,10 @@ compiles.
 
 ## M0 — skeleton (done)
 
-Build tree, targets, presets, `famulusd --help`.
+Build tree, targets, presets, a `famulusd` that prints `hello world`.
 
 Acceptance: `cmake --preset win-msvc` && `cmake --build --preset win-debug` &&
-`famulusd.exe --help` && `cmake --preset win-null`.
+`famulusd.exe` prints `hello world` && `cmake --preset win-null`.
 
 ## M1 — the transport and the handshake
 
