@@ -49,6 +49,8 @@ namespace Famulus::Windows
         // which promises that no event arrives afterwards.
         void Stop();
 
+        static auto GetInstance() -> HotkeyWorker&;
+
     private:
         struct Binding
         {
@@ -82,7 +84,4 @@ namespace Famulus::Windows
         bool Started = false;
         bool Ready = false;
     };
-
-    // The adapter has exactly one worker; the ABI layer reaches it through this.
-    auto Hotkeys() -> HotkeyWorker&;
 }

@@ -32,7 +32,14 @@ namespace
 
 namespace Famulus::Windows
 {
-    auto Secrets() -> SecretStore&
+    SecretStore::SecretStore()
+    {
+        // Nothing to create yet: the data directory belongs to the environment,
+        // and the secrets subdirectory is ensured on first use, where a failure
+        // can be reported to the host.
+    }
+
+    auto SecretStore::GetInstance() -> SecretStore&
     {
         static SecretStore instance;
         return instance;
@@ -40,7 +47,7 @@ namespace Famulus::Windows
 
     auto SecretStore::Set(std::string_view name, const void* data, size_t size) -> fam_status_t
     {
-        const std::wstring path = FileFor(name);
+        const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
@@ -64,7 +71,7 @@ namespace Famulus::Windows
             return FAM_E_INVALID;
         }
 
-        const std::wstring path = FileFor(name);
+        const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
@@ -104,7 +111,7 @@ namespace Famulus::Windows
 
     auto SecretStore::Delete(std::string_view name) -> fam_status_t
     {
-        const std::wstring path = FileFor(name);
+        const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
@@ -119,7 +126,7 @@ namespace Famulus::Windows
         return FAM_OK;
     }
 
-    auto SecretStore::ValidName(std::string_view name) -> bool
+    auto SecretStore::IsValidName(std::string_view name) -> bool
     {
         if (name.empty() || name.size() > MaxNameLength || name == "." || name == "..")
         {
@@ -141,9 +148,17 @@ namespace Famulus::Windows
         return true;
     }
 
-    auto SecretStore::SecretsDirectory() -> std::wstring
+    auto SecretStore::EnsureSecretsDirectory() -> std::wstring
     {
-        const std::wstring data_directory = Environment().WidePathFor(FAM_PATH_DATA);
+        PlatformEnvironment& environment = PlatformEnvironment::GetInstance();
+
+        if (!environment.EnsureDirectory(FAM_PATH_DATA))
+        {
+            environment.Log(3, "secret", "cannot create the data directory");
+            return {};
+        }
+
+        const std::wstring data_directory = environment.GetWidePathFor(FAM_PATH_DATA);
 
         if (data_directory.empty())
         {
@@ -156,21 +171,21 @@ namespace Famulus::Windows
 
         if (::CreateDirectoryW(directory.c_str(), nullptr) == 0 && ::GetLastError() != ERROR_ALREADY_EXISTS)
         {
-            Environment().Log(3, "secret", "cannot create the secrets directory");
+            PlatformEnvironment::GetInstance().Log(3, "secret", "cannot create the secrets directory");
             return {};
         }
 
         return directory;
     }
 
-    auto SecretStore::FileFor(std::string_view name) -> std::wstring
+    auto SecretStore::GetFileFor(std::string_view name) -> std::wstring
     {
-        if (!ValidName(name))
+        if (!IsValidName(name))
         {
             return {};
         }
 
-        const std::wstring directory = SecretsDirectory();
+        const std::wstring directory = EnsureSecretsDirectory();
 
         if (directory.empty())
         {
@@ -179,7 +194,7 @@ namespace Famulus::Windows
 
         std::wstring file = directory;
         file.push_back(L'\\');
-        file.append(PlatformEnvironment::ToWide(name));
+        file.append(PlatformEnvironment::ConvertToWide(name));
         file.append(L".bin");
 
         return file;

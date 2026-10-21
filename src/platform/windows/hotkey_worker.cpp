@@ -19,13 +19,13 @@ namespace
     constexpr wchar_t WindowClassName[] = L"famulus-hotkey-window";
     constexpr UINT JobMessage = WM_APP + 1;
 
-    auto WallMilliseconds() -> int64_t
+    auto GetWallMilliseconds() -> int64_t
     {
         const auto now = std::chrono::system_clock::now().time_since_epoch();
         return std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
     }
 
-    auto EqualsIgnoreCase(std::string_view left, std::string_view right) -> bool
+    auto IsEqualIgnoreCase(std::string_view left, std::string_view right) -> bool
     {
         if (left.size() != right.size())
         {
@@ -77,25 +77,25 @@ namespace
             return false;
         }
 
-        if (EqualsIgnoreCase(token, "Space"))
+        if (IsEqualIgnoreCase(token, "Space"))
         {
             virtual_key = VK_SPACE;
             return true;
         }
 
-        if (EqualsIgnoreCase(token, "Enter"))
+        if (IsEqualIgnoreCase(token, "Enter"))
         {
             virtual_key = VK_RETURN;
             return true;
         }
 
-        if (EqualsIgnoreCase(token, "Tab"))
+        if (IsEqualIgnoreCase(token, "Tab"))
         {
             virtual_key = VK_TAB;
             return true;
         }
 
-        if (EqualsIgnoreCase(token, "Esc") || EqualsIgnoreCase(token, "Escape"))
+        if (IsEqualIgnoreCase(token, "Esc") || IsEqualIgnoreCase(token, "Escape"))
         {
             virtual_key = VK_ESCAPE;
             return true;
@@ -157,22 +157,22 @@ namespace
                 continue;
             }
 
-            if (EqualsIgnoreCase(token, "Ctrl") || EqualsIgnoreCase(token, "Control"))
+            if (IsEqualIgnoreCase(token, "Ctrl") || IsEqualIgnoreCase(token, "Control"))
             {
                 modifiers |= MOD_CONTROL;
                 canonical += "Ctrl+";
             }
-            else if (EqualsIgnoreCase(token, "Alt"))
+            else if (IsEqualIgnoreCase(token, "Alt"))
             {
                 modifiers |= MOD_ALT;
                 canonical += "Alt+";
             }
-            else if (EqualsIgnoreCase(token, "Shift"))
+            else if (IsEqualIgnoreCase(token, "Shift"))
             {
                 modifiers |= MOD_SHIFT;
                 canonical += "Shift+";
             }
-            else if (EqualsIgnoreCase(token, "Win") || EqualsIgnoreCase(token, "Super"))
+            else if (IsEqualIgnoreCase(token, "Win") || IsEqualIgnoreCase(token, "Super"))
             {
                 modifiers |= MOD_WIN;
                 canonical += "Win+";
@@ -195,7 +195,7 @@ namespace
 
 namespace Famulus::Windows
 {
-    auto Hotkeys() -> HotkeyWorker&
+    auto HotkeyWorker::GetInstance() -> HotkeyWorker&
     {
         static HotkeyWorker instance;
         return instance;
@@ -420,7 +420,7 @@ namespace Famulus::Windows
             return;
         }
 
-        const struct fam_host* host = Environment().Host();
+        const struct fam_host* host = PlatformEnvironment::GetInstance().GetHost();
 
         if (host == nullptr)
         {
@@ -428,7 +428,7 @@ namespace Famulus::Windows
         }
 
         const std::string payload = "{\"accelerator\":\"" + found->second.accelerator + "\"}";
-        const struct fam_event event{"hotkey.pressed", payload.c_str(), payload.size(), WallMilliseconds()};
+        const struct fam_event event{"hotkey.pressed", payload.c_str(), payload.size(), GetWallMilliseconds()};
 
         host->post_event(&event);
     }

@@ -1,5 +1,5 @@
 // ============================================================================
-//  PlatformEnvironment.cpp - host table, logging, storage roots, encoding
+//  platform_environment.cpp - host table, logging, storage roots, encoding
 //
 //  Encoding conversion is MultiByteToWideChar / WideCharToMultiByte: the OS
 //  already has a correct, fast implementation that handles invalid input, so
@@ -23,9 +23,11 @@ namespace
 {
     constexpr wchar_t AppDirectoryName[] = L"famulus";
 
+    constexpr enum fam_path_kind AllPathKinds[] = {FAM_PATH_DATA, FAM_PATH_CONFIG, FAM_PATH_CACHE, FAM_PATH_STATE};
+
     // Storage roots are platform conventions, never guesses: a sandboxed or
     // roaming build moves them, and the daemon must not care.
-    auto RootVariableFor(enum fam_path_kind kind) -> const wchar_t*
+    auto GetRootVariable(enum fam_path_kind kind) -> const wchar_t*
     {
         switch (kind)
         {
@@ -40,7 +42,7 @@ namespace
         return nullptr;
     }
 
-    auto EnvironmentVariable(const wchar_t* name) -> std::wstring
+    auto GetEnvironmentVariable(const wchar_t* name) -> std::wstring
     {
         const DWORD needed = ::GetEnvironmentVariableW(name, nullptr, 0);
 
@@ -64,25 +66,40 @@ namespace
 
 namespace Famulus::Windows
 {
-    auto Environment() -> PlatformEnvironment&
+    PlatformEnvironment::PlatformEnvironment()
+    {
+        // Creating here rather than on first use: a daemon that cannot create its
+        // own directory should find out at startup, not halfway through a session.
+        // The result is kept, because there is nobody to report to yet.
+        bool ready = true;
+
+        for (const enum fam_path_kind kind : AllPathKinds)
+        {
+            ready = EnsureDirectory(kind) && ready;
+        }
+
+        Ready = ready;
+    }
+
+    PlatformEnvironment::~PlatformEnvironment()
+    {
+        HostTable = nullptr;
+    }
+
+    auto PlatformEnvironment::GetInstance() -> PlatformEnvironment&
     {
         static PlatformEnvironment instance;
         return instance;
     }
 
-    auto PlatformEnvironment::Host() const -> const struct fam_host*
+    auto PlatformEnvironment::GetHost() const -> const struct fam_host*
     {
         return HostTable;
     }
 
-    void PlatformEnvironment::Attach(const struct fam_host* host)
+    void PlatformEnvironment::SetHost(const struct fam_host* host)
     {
         HostTable = host;
-    }
-
-    void PlatformEnvironment::Detach()
-    {
-        HostTable = nullptr;
     }
 
     void PlatformEnvironment::Log(int level, const char* category, const char* message) const
@@ -93,7 +110,7 @@ namespace Famulus::Windows
         }
     }
 
-    auto PlatformEnvironment::ToWide(std::string_view text) -> std::wstring
+    auto PlatformEnvironment::ConvertToWide(std::string_view text) -> std::wstring
     {
         if (text.empty())
         {
@@ -114,16 +131,38 @@ namespace Famulus::Windows
         return wide;
     }
 
-    auto PlatformEnvironment::WidePathFor(enum fam_path_kind kind) const -> std::wstring
+    auto PlatformEnvironment::IsReady() const -> bool
     {
-        const wchar_t* variable = RootVariableFor(kind);
+        return Ready;
+    }
+
+    auto PlatformEnvironment::EnsureDirectory(enum fam_path_kind kind) const -> bool
+    {
+        const std::wstring path = GetWidePathFor(kind);
+
+        if (path.empty())
+        {
+            return false;
+        }
+
+        if (::CreateDirectoryW(path.c_str(), nullptr) == 0)
+        {
+            return ::GetLastError() == ERROR_ALREADY_EXISTS;
+        }
+
+        return true;
+    }
+
+    auto PlatformEnvironment::GetWidePathFor(enum fam_path_kind kind) const -> std::wstring
+    {
+        const wchar_t* variable = GetRootVariable(kind);
 
         if (variable == nullptr)
         {
             return {};
         }
 
-        std::wstring path = EnvironmentVariable(variable);
+        std::wstring path = GetEnvironmentVariable(variable);
 
         if (path.empty())
         {
@@ -137,20 +176,12 @@ namespace Famulus::Windows
 
         path.append(AppDirectoryName);
 
-        if (::CreateDirectoryW(path.c_str(), nullptr) == 0)
-        {
-            if (::GetLastError() != ERROR_ALREADY_EXISTS)
-            {
-                return {};
-            }
-        }
-
         return path;
     }
 
-    auto PlatformEnvironment::PathFor(enum fam_path_kind kind) const -> std::string
+    auto PlatformEnvironment::GetPathFor(enum fam_path_kind kind) const -> std::string
     {
-        const std::wstring wide = WidePathFor(kind);
+        const std::wstring wide = GetWidePathFor(kind);
 
         if (wide.empty())
         {

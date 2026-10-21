@@ -51,7 +51,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        Famulus::Windows::Environment().Attach(host);
+        Famulus::Windows::PlatformEnvironment::GetInstance().SetHost(host);
         return FAM_OK;
     }
 
@@ -59,8 +59,8 @@ extern "C"
     {
         // The contract promises no event after this returns, so capabilities that
         // own OS resources release them before the host pointer goes away.
-        Famulus::Windows::Hotkeys().Stop();
-        Famulus::Windows::Environment().Detach();
+        Famulus::Windows::HotkeyWorker::GetInstance().Stop();
+        Famulus::Windows::PlatformEnvironment::GetInstance().SetHost(nullptr);
     }
 
     // --- storage locations -------------------------------------------------
@@ -77,7 +77,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        const std::string path = Famulus::Windows::Environment().PathFor(kind);
+        const std::string path = Famulus::Windows::PlatformEnvironment::GetInstance().GetPathFor(kind);
 
         if (path.empty())
         {
@@ -107,7 +107,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        return Famulus::Windows::Hotkeys().Bind(accelerator, *out_id);
+        return Famulus::Windows::HotkeyWorker::GetInstance().Bind(accelerator, *out_id);
     }
 
     fam_status_t fam_platform_hotkey_unbind(uint32_t id)
@@ -117,7 +117,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        return Famulus::Windows::Hotkeys().Unbind(id);
+        return Famulus::Windows::HotkeyWorker::GetInstance().Unbind(id);
     }
 
     // --- secrets -----------------------------------------------------------
@@ -129,7 +129,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        return Famulus::Windows::Secrets().Set(name, data, size);
+        return Famulus::Windows::SecretStore::GetInstance().Set(name, data, size);
     }
 
     fam_status_t fam_platform_secret_get(const char* name, unsigned char* buf, size_t* inout_len)
@@ -139,7 +139,7 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        return Famulus::Windows::Secrets().Get(name, buf, inout_len);
+        return Famulus::Windows::SecretStore::GetInstance().Get(name, buf, inout_len);
     }
 
     fam_status_t fam_platform_secret_delete(const char* name)
@@ -149,6 +149,6 @@ extern "C"
             return FAM_E_INVALID;
         }
 
-        return Famulus::Windows::Secrets().Delete(name);
+        return Famulus::Windows::SecretStore::GetInstance().Delete(name);
     }
 }

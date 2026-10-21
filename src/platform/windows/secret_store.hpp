@@ -19,6 +19,13 @@ namespace Famulus::Windows
     class SecretStore
     {
     public:
+        // The constructor creates the secrets directory; a store that cannot
+        // create it reports the failure through every call instead of at startup,
+        // because a missing secret is not fatal for the daemon.
+        SecretStore();
+
+        static auto GetInstance() -> SecretStore&;
+
         // A name is 1..64 characters of [A-Za-z0-9._-]. It is validated here
         // because in this implementation a name is a path component: the
         // boundary's job is to refuse the locator and accept only the data.
@@ -27,15 +34,12 @@ namespace Famulus::Windows
         auto Delete(std::string_view name) -> fam_status_t;
 
     private:
-        static auto ValidName(std::string_view name) -> bool;
-        static auto SecretsDirectory() -> std::wstring;
-        static auto FileFor(std::string_view name) -> std::wstring;
+        static auto IsValidName(std::string_view name) -> bool;
+        static auto EnsureSecretsDirectory() -> std::wstring;
+        static auto GetFileFor(std::string_view name) -> std::wstring;
         static auto ReadAll(const std::wstring& path, std::vector<unsigned char>& out) -> fam_status_t;
         static auto WriteAll(const std::wstring& path, const unsigned char* data, size_t size) -> fam_status_t;
         static auto Protect(const unsigned char* data, size_t size, std::vector<unsigned char>& out) -> fam_status_t;
         static auto Unprotect(const std::vector<unsigned char>& data, std::vector<unsigned char>& out) -> fam_status_t;
     };
-
-    // The adapter has exactly one store; the ABI layer reaches it through this.
-    auto Secrets() -> SecretStore&;
 }

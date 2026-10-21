@@ -1,9 +1,11 @@
 // ============================================================================
-//  PlatformEnvironment.hpp - what every capability needs from the daemon and
+//  platform_environment.hpp - what every capability needs from the daemon and
 //  from Win32
 //
-//  Owns the host table the daemon lent at init, and the two conversions that
-//  would otherwise be repeated in every capability file.
+//  Owns the host table the daemon lent at init. The constructor is where the
+//  creating happens: it ensures the directories the daemon writes to, and
+//  records whether it worked. It cannot report anything - there is no host yet -
+//  so fam_platform_init turns that record into a status code.
 // ============================================================================
 
 #pragma once
@@ -18,29 +20,39 @@ namespace Famulus::Windows
     class PlatformEnvironment
     {
     public:
+        PlatformEnvironment();
+        ~PlatformEnvironment();
+
+        PlatformEnvironment(const PlatformEnvironment&) = delete;
+        auto operator=(const PlatformEnvironment&) -> PlatformEnvironment& = delete;
+
+        static auto GetInstance() -> PlatformEnvironment&;
+
         // The host table, or nullptr before init and after shutdown. Borrowed for
         // the lifetime of the process.
-        auto Host() const -> const struct fam_host*;
-
-        void Attach(const struct fam_host* host);
-        void Detach();
+        auto GetHost() const -> const struct fam_host*;
+        void SetHost(const struct fam_host* host);
 
         void Log(int level, const char* category, const char* message) const;
 
         // Storage root for a path kind, no trailing separator. Empty when the
-        // platform refused, which callers treat as "store nothing". PathFor gives
-        // UTF-8 for the ABI, WidePathFor the native form for Win32 calls.
-        auto PathFor(enum fam_path_kind kind) const -> std::string;
-        auto WidePathFor(enum fam_path_kind kind) const -> std::wstring;
+        // platform refused, which callers treat as "store nothing". GetPathFor
+        // returns UTF-8 for the ABI, GetWidePathFor the native form for Win32
+        // calls. Neither creates anything: that is EnsureDirectory's job.
+        auto GetPathFor(enum fam_path_kind kind) const -> std::string;
+        auto GetWidePathFor(enum fam_path_kind kind) const -> std::wstring;
+
+        // Creates the directory if it is missing. True when it exists afterwards.
+        auto EnsureDirectory(enum fam_path_kind kind) const -> bool;
+
+        // Whether the constructor managed to create every directory.
+        auto IsReady() const -> bool;
 
         // UTF-8 -> UTF-16 through MultiByteToWideChar.
-        static auto ToWide(std::string_view text) -> std::wstring;
+        static auto ConvertToWide(std::string_view text) -> std::wstring;
 
     private:
         const struct fam_host* HostTable = nullptr;
+        bool Ready = false;
     };
-
-    // The adapter has exactly one environment; capabilities reach it through
-    // this rather than through a global.
-    auto Environment() -> PlatformEnvironment&;
 }
