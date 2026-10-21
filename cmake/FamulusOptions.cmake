@@ -17,7 +17,10 @@ option(FAMULUS_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer 
 option(FAMULUS_FETCH_DEPS "Populate third-party dependencies with FetchContent" OFF)
 
 # The OS adapter linked into famulusd. Left empty, FamulusPlatform picks the
-# host's adapter. Setting it to "null" proves core/ builds with no platform
-# code at all - that is the portability gate CI runs.
-set(FAMULUS_OS "" CACHE STRING "OS adapter to link: windows | macos | linux | null | mock")
-set_property(CACHE FAMULUS_OS PROPERTY STRINGS windows macos linux null mock)
+# host's adapter. This is a real option and not a hard-coded name on purpose:
+# the project is cross-platform by design and this names the seam a second
+# platform plugs into, even though only the Windows adapter exists today.
+# "null" proves src/core builds with no platform code at all - that is the
+# portability gate CI runs.
+set(FAMULUS_OS "" CACHE STRING "OS adapter to link: windows | null (only windows is implemented)")
+set_property(CACHE FAMULUS_OS PROPERTY STRINGS windows null)

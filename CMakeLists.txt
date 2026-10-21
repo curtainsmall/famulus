@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  famulus - top level
 #
 #  Layout and the boundaries it encodes:
@@ -14,8 +14,13 @@
 #  The boundaries are enforced by the link graph, not by directory layout:
 #  src/os never links src/core, and src/shell links neither.
 #
-#  Language roles: C++20 is the project language, C99 is the boundary language
-#  (src/os/api/famulus_os.h), Objective-C++ is allowed inside src/os/macos only.
+#  The project is cross-platform by design, but only the Windows adapter is
+#  implemented so far: every OS capability sits behind one C contract
+#  (src/os/api/famulus_os.h) with one adapter per platform behind it, so a
+#  second platform adds src/os/<name> instead of changing src/core.
+#
+#  Language roles: C++20 is the project language, C99 is the boundary language;
+#  a future macOS adapter may use Objective-C++ inside its own directory only.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 

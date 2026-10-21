@@ -65,8 +65,8 @@ function(famulus_executable name)
 endfunction()
 
 # famulus_test_target(<name> <subdir>...)
-# The caller is responsible for linking the target's subject and famulus_os_mock
-# after checking `if(TARGET <name>)`.
+# The caller is responsible for linking the target's subject and whatever double
+# the suite needs, after checking `if(TARGET <name>)`.
 function(famulus_test_target name)
     if(NOT FAMULUS_BUILD_TESTS OR NOT FAMULUS_GTEST_AVAILABLE)
         return()
