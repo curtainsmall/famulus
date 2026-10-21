@@ -1,16 +1,15 @@
-﻿# ============================================================================
-#  src/proto/ - the only contract every process shares
+# ============================================================================
+#  src/proto/ - the contract
 #
-#  The contract itself does not exist yet. This target exists so core/ and the
-#  shells have one thing to depend on once the schema lands; the directories it
-#  will use are created by whoever adds the first file, not in advance.
+#  Content only: schemas, message types, constants. No framing, no encoding
+#  logic, no .cpp. Those live in src/base/ because they are implementation.
 #
 #    schema/*.json          hand written, the authoritative definition
-#    include/               hand written C++ that is not generated
+#    include/               hand written C++ types that are not generated
 #    <build>/proto/gen/     types generated from the schema
 #
-#  Include paths are added only for directories that actually exist, so an
-#  empty proto/ is not a broken proto/.
+#  Include paths are added only for directories that actually exist, so an empty
+#  proto/ is not a broken proto/.
 # ============================================================================
 
 add_library(famulus_proto INTERFACE)

@@ -1,18 +1,16 @@
 # ============================================================================
 #  famulus - platform adapter selection
 #
-#  "Platform" here means the environment the daemon runs in, not an operating
-#  system: a desktop OS, a server, a cloud backend. Every capability that
-#  belongs to that environment - a global hotkey, a notification channel, a
-#  scheduler, a secret store - sits behind one C contract,
-#  src/platform/api/famulus_platform.h, with one adapter per platform behind it.
-#  Nothing in src/core knows which adapter was linked.
+#  "Platform" means the environment the daemon runs in, not an operating
+#  system: a desktop OS, a server, a cloud backend. Everything that belongs to
+#  that environment - a global hotkey, a notification channel, a scheduler, a
+#  secret store, the local transport - sits behind src/platform/api, with one
+#  adapter per platform behind it.
 #
 #  Only the Windows adapter exists today. FAMULUS_PLATFORM stays a real option
 #  rather than a hard-coded name because it names the seam a second platform
 #  plugs into: adding macOS, Linux or a cloud adapter means adding
-#  src/platform/<name> plus one entry in FAMULUS_PLATFORM_SUPPORTED, not
-#  redesigning the build.
+#  src/platform/<name> plus one entry in FAMULUS_PLATFORM_SUPPORTED.
 #
 #  An adapter name is also the path component it lives in: FAMULUS_PLATFORM=windows
 #  means src/platform/windows and famulus_platform_windows.
@@ -52,5 +50,6 @@ endif()
 # it is deliberately absent from FAMULUS_PLATFORM_SUPPORTED. This file describes
 # what the product can be, not what can be tested.
 
-# Single name for the adapter target; consumers use this instead of guessing.
-set(FAMULUS_LEAF_TARGET "famulus_platform_${FAMULUS_PLATFORM}")
+# Consumers link this name and get the headers plus whichever adapter was
+# selected; the choice happens in src/platform/CMakeLists.txt and nowhere else.
+set(FAMULUS_PLATFORM_TARGET famulus_platform)

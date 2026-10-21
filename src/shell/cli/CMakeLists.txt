@@ -1,16 +1,23 @@
-﻿# ============================================================================
-#  src/shell/cli/ - famulusctl
+# ============================================================================
+#  src/shell/cli/ - famulus_shell_cli
 #
-#  The headless shell. A terminal is a surface like any other, just with the
+#  The headless surface. A terminal is a surface like any other, just with the
 #  smallest capability set: no notifications, no rich text, no forms. Artifacts
-#  that need a form are therefore not renderable here and land in `pending`,
-#  which is exactly the degradation path desktop-ui will exercise later.
+#  that need a form are therefore not renderable here and stay pending, which is
+#  what makes the degradation ladder testable from the first milestone.
 #
-#  Links famulus_proto only. Same rule as every other shell.
+#  Links base and platform (for framing and the transport), never core.
 # ============================================================================
 
-famulus_executable(famulusctl src)
+famulus_executable(famulus_shell_cli src)
 
-if(TARGET famulusctl)
-    target_link_libraries(famulusctl PRIVATE famulus_proto)
+if(TARGET famulus_shell_cli)
+    target_link_libraries(famulus_shell_cli PRIVATE
+        famulus_proto
+        famulus_base
+        famulus_platform)
+
+    # Target name follows the path; the artifact is named for the person typing
+    # it. Only executables differ - a library's name is its identity.
+    set_target_properties(famulus_shell_cli PROPERTIES OUTPUT_NAME famulusctl)
 endif()

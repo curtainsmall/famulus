@@ -1,28 +1,28 @@
 # ============================================================================
 #  famulus - top level
 #
-#  Layout and the boundaries it encodes:
+#  Layout, and the dependency rule each directory obeys. The rule is the same
+#  shape systemd and VS Code use: a directory may only depend on those above it
+#  in this list, never on those below.
 #
-#    src/proto/     the contract every process shares (IPC, artifacts, blocks)
-#    src/core/      the brain: policy, state, providers, tools, IPC server
-#    src/platform/  the platform adapter: the only holder of system authority,
-#                   where "platform" means desktop OS, server or cloud backend
-#    src/daemon/    the famulusd entry point, a sibling of core/ so the library
-#                   can never pick it up
-#    src/shell/     the surfaces: cli and win-desktop, both protocol clients
-#    tests/         every test, deliberately outside src/ because no test ships
+#    src/proto/      the contract: schemas, message types, constants. No code.
+#    src/base/       our own foundation: framing, encoding, small utilities.
+#                    Depends on nothing else in the tree.
+#    src/platform/   the abstracted environment: capabilities (hotkey,
+#                    notification, scheduler, secrets, paths) and the local
+#                    transport. Depends on base only.
+#    src/core/       the daemon: sessions, artifacts, providers, scheduling,
+#                    policy. Depends on base and platform. Never on shells.
+#    src/shell/      the surfaces: cli, win-desktop. Depend on base and
+#                    platform, never on core.
+#    tests/          all tests, deliberately outside src/ because no test ships.
 #
-#  The boundaries are enforced by the link graph, not by directory layout:
-#  src/platform never links src/core, and src/shell links neither.
+#  "Platform" here means the environment the daemon runs in, not an operating
+#  system: a desktop OS, a server, a cloud backend. Only the Windows adapter
+#  exists today; adding another means adding src/platform/<name>.
 #
-#  The project is cross-platform by design, but only the Windows adapter is
-#  implemented so far: every platform capability sits behind one C contract
-#  (src/platform/api/famulus_platform.h) with one adapter per platform behind
-#  it, so a second platform adds src/platform/<name> instead of changing
-#  src/core.
-#
-#  Language roles: C++20 is the project language, C99 is the boundary language;
-#  a future macOS adapter may use Objective-C++ inside its own directory only.
+#  Everything generated lands under build/, so `git clean -xdf` is the only
+#  reset needed.
 # ============================================================================
 cmake_minimum_required(VERSION 3.28)
 
@@ -41,11 +41,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Everything a configure produces lives under build/ (see CMakePresets.json and
-# FamulusDependencies.cmake): the per-preset trees, the dependency sources and
-# the install trees. The source tree stays clean, so a full reset is just
-# `git clean -xdf`.
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(FamulusOptions)
 include(FamulusPlatform)
@@ -55,9 +50,9 @@ include(FamulusTesting)
 include(FamulusTargets)
 
 add_subdirectory(src/proto)
+add_subdirectory(src/base)
 add_subdirectory(src/platform)
 add_subdirectory(src/core)
-add_subdirectory(src/daemon)
 add_subdirectory(src/shell)
 add_subdirectory(tests)
 

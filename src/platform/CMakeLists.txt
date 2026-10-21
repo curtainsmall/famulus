@@ -1,20 +1,28 @@
 # ============================================================================
-#  src/platform/ - the platform adapter, the only holder of system authority
+#  src/platform/ - the abstracted environment
 #
-#  famulus_platform_api carries src/platform/api/famulus_platform.h, the pure C99
-#  contract. An adapter may include that header and nothing else from this
-#  project - it does not link core, never includes a core header, and has no idea
-#  what an artifact or a session is.
+#  Three targets, and the split is what lets a shell link the platform without
+#  gaining the right to call a hotkey from the wrong process:
 #
-#  Exactly one adapter is built as famulus_platform_<platform> and linked into
-#  famulusd. The null adapter builds anywhere and returns FAM_E_UNSUPPORTED from
-#  every entry point: it is both the cloud/server variant and the portability
-#  gate that proves src/core holds no platform code.
+#    famulus_platform_api    INTERFACE  the headers: famulus_platform.h (C
+#                            capabilities) and famulus_transport.h (C++ byte
+#                            stream). No code, no selection.
+#    famulus_platform_<name> STATIC     one adapter: src/platform/windows,
+#                            src/platform/null. Capabilities plus the local
+#                            transport implementation.
+#    famulus_platform        INTERFACE  the facade consumers link. Carries the
+#                            headers and whichever adapter the build selected.
 #
-#  Every directory here is created by whoever adds the first file to it: the
-#  globs and the include guard below make an empty src/platform/ legitimate, so
-#  nothing has to be stubbed out in advance.
+#  The selection happens here and nowhere else, so no consumer repeats a
+#  platform question.
+#
+#  Dependency rule: src/platform may use src/base and nothing else from this
+#  tree. It never includes a core header and has no idea what a session is.
 # ============================================================================
+
+set(FAMULUS_PLATFORM_ADAPTER "famulus_platform_${FAMULUS_PLATFORM}")
+
+# --- the headers -----------------------------------------------------------
 
 add_library(famulus_platform_api INTERFACE)
 
@@ -23,13 +31,27 @@ if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/api")
         "${CMAKE_CURRENT_SOURCE_DIR}/api")
 endif()
 
-famulus_library(${FAMULUS_LEAF_TARGET} STATIC "${FAMULUS_PLATFORM}/src")
+# --- the selected adapter --------------------------------------------------
 
-if(TARGET ${FAMULUS_LEAF_TARGET})
-    target_link_libraries(${FAMULUS_LEAF_TARGET} PUBLIC famulus_platform_api)
+famulus_library(${FAMULUS_PLATFORM_ADAPTER} STATIC "${FAMULUS_PLATFORM}")
+
+if(TARGET ${FAMULUS_PLATFORM_ADAPTER})
+    target_link_libraries(${FAMULUS_PLATFORM_ADAPTER} PRIVATE famulus_platform_api)
 
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${FAMULUS_PLATFORM}/include")
-        target_include_directories(${FAMULUS_LEAF_TARGET} PRIVATE
+        target_include_directories(${FAMULUS_PLATFORM_ADAPTER} PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/${FAMULUS_PLATFORM}/include")
     endif()
+endif()
+
+# --- the facade ------------------------------------------------------------
+
+add_library(famulus_platform INTERFACE)
+
+target_link_libraries(famulus_platform INTERFACE famulus_platform_api)
+
+if(TARGET ${FAMULUS_PLATFORM_ADAPTER})
+    target_link_libraries(famulus_platform INTERFACE ${FAMULUS_PLATFORM_ADAPTER})
+else()
+    message(STATUS "famulus: ${FAMULUS_PLATFORM_ADAPTER} has no sources yet; famulus_platform carries headers only")
 endif()

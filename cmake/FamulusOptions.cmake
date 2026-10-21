@@ -6,7 +6,7 @@
 # ============================================================================
 
 option(FAMULUS_BUILD_TESTS "Build unit and integration test targets" ON)
-option(FAMULUS_BUILD_SHELL "Build the shells (famulusctl, famulus_ui)" ON)
+option(FAMULUS_BUILD_SHELL "Build the shells (famulus_shell_cli, famulus_shell_win_desktop)" ON)
 option(FAMULUS_WERROR "Treat compiler warnings as errors in first-party targets" ON)
 option(FAMULUS_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer (GCC/Clang only)" OFF)
 

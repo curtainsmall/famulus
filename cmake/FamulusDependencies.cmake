@@ -79,7 +79,7 @@ target_compile_definitions(famulus_sqlite3 PUBLIC
     SQLITE_ENABLE_FTS5
     SQLITE_ENABLE_JSON1)
 
-# famulus_warnings is deliberately NOT linked: upstream C is not /W4 clean and
+# famulus_apply_warnings() is deliberately NOT applied: upstream C is not /W4 clean and
 # holding it to our -Werror would only teach us to ignore warnings.
 
 # --- tests -----------------------------------------------------------------

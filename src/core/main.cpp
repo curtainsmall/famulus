@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-//  src/daemon/main.cpp - famulusd entry point
+//  src/core/main.cpp - famulusd entry point
 //
 //  Process bootstrap, not the brain. Argument parsing, single-instance
 //  acquisition, log initialisation, the supervisor handshake and signal

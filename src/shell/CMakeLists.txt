@@ -1,16 +1,16 @@
-﻿# ============================================================================
+# ============================================================================
 #  src/shell/ - every surface is a protocol client
 #
-#  A shell speaks proto/ messages over IPC and owns nothing but presentation and
-#  input. It must never link famulus_core or an platform adapter: that is what keeps
-#  the daemon replaceable underneath it and lets several shells exist at once.
-#
-#  Each shell declares a different capability set, which is what makes the
-#  artifact degradation ladder testable instead of theoretical.
+#  A shell speaks the protocol over the local transport and owns nothing but
+#  presentation and input. It links base and platform, never core: that is what
+#  keeps the daemon replaceable underneath it and lets several shells exist at
+#  once.
 #
 #  Shells are split by platform, not by technology: the window behaviour a shell
 #  needs - overlay without focus stealing, IME, DPI - is platform code, and
-#  hiding it behind a shared directory only pretends otherwise.
+#  hiding it behind a shared directory only pretends otherwise. The CLI is the
+#  exception because a terminal has no window behaviour to speak of, so it stays
+#  a single portable implementation.
 # ============================================================================
 
 if(FAMULUS_BUILD_SHELL)

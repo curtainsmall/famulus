@@ -4,8 +4,8 @@
 #  Every first-party target is created through these helpers, which collect
 #  sources from the given subdirectories of the current source directory and
 #  skip the target while those directories are still empty. That keeps
-#  `cmake --preset ...` green on a skeleton checkout without committing
-#  placeholder .cpp files: a target appears the moment a real source lands.
+#  `cmake --preset ...` green on a checkout with no code, and a target appears
+#  the moment a real source lands.
 #
 #  Only compilable extensions are collected. Headers are intentionally not
 #  globbed, so a directory holding nothing but headers cannot produce a target
@@ -47,7 +47,7 @@ function(famulus_library name kind)
     endif()
 
     add_library(${name} ${kind} ${_sources})
-    target_link_libraries(${name} PRIVATE famulus_warnings)
+    famulus_apply_warnings(${name})
     set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
@@ -61,12 +61,12 @@ function(famulus_executable name)
     endif()
 
     add_executable(${name} ${_sources})
-    target_link_libraries(${name} PRIVATE famulus_warnings)
+    famulus_apply_warnings(${name})
 endfunction()
 
 # famulus_test_target(<name> <subdir>...)
-# The caller is responsible for linking the target's subject and whatever double
-# the suite needs, after checking `if(TARGET <name>)`.
+# The caller links the subject and whatever double the suite needs, after
+# checking `if(TARGET <name>)`.
 function(famulus_test_target name)
     if(NOT FAMULUS_BUILD_TESTS OR NOT FAMULUS_GTEST_AVAILABLE)
         return()
@@ -80,6 +80,7 @@ function(famulus_test_target name)
     endif()
 
     add_executable(${name} ${_sources})
-    target_link_libraries(${name} PRIVATE famulus_warnings GTest::gtest_main)
+    famulus_apply_warnings(${name})
+    target_link_libraries(${name} PRIVATE GTest::gtest_main)
     gtest_discover_tests(${name})
 endfunction()
