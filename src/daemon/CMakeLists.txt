@@ -3,8 +3,8 @@
 #
 #  Process bootstrap only: argument parsing, single-instance acquisition, log
 #  initialisation, the supervisor handshake and signal handling. It links the
-#  library so it can start it, and the OS adapter so the daemon - and only the
-#  daemon - holds system authority.
+#  library so it can start it, and the platform adapter so the daemon - and
+#  only the daemon - holds system authority.
 #
 #  The directory is a sibling of src/core/ on purpose. A static library that
 #  carries a main() collides with any test main, and only sometimes, because
@@ -27,7 +27,7 @@ if(DAEMON_SOURCES)
     if(TARGET ${FAMULUS_LEAF_TARGET})
         target_link_libraries(famulusd PRIVATE ${FAMULUS_LEAF_TARGET})
     else()
-        message(WARNING "famulusd built without an OS adapter: ${FAMULUS_LEAF_TARGET} has no sources yet")
+        message(WARNING "famulusd built without a platform adapter: ${FAMULUS_LEAF_TARGET} has no sources yet")
     endif()
 else()
     message(STATUS "famulus: famulusd skipped (no sources yet)")

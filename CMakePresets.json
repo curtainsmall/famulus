@@ -1,4 +1,4 @@
-{
+﻿{
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
@@ -25,11 +25,11 @@
     },
     {
       "name": "win-null",
-      "displayName": "Windows / portable gate (FAMULUS_OS=null)",
+      "displayName": "Windows / portable gate (FAMULUS_PLATFORM=null)",
       "description": "Builds src/core/ with no platform adapter. This is the check CI must keep green.",
       "inherits": "win-msvc",
       "cacheVariables": {
-        "FAMULUS_OS": "null",
+        "FAMULUS_PLATFORM": "null",
         "FAMULUS_BUILD_SHELL": "OFF"
       }
     }

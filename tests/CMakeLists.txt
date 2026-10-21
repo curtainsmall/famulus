@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 #  tests/ - every test lives here, and only here
 #
 #  The source tree carries no tests and no test targets: a component is not
@@ -6,7 +6,7 @@
 #  mirror src/ - suites are grouped by what they need, not by which module they
 #  happen to touch.
 #
-#    support/      doubles and fixtures shared by several suites (the OS mock)
+#    support/      doubles and fixtures shared by several suites (the platform mock)
 #    unit/         one process, links famulus_core, may reach into internals
 #    integration/  real processes, links the protocol only, cannot see internals
 #
@@ -14,18 +14,18 @@
 #  include a core header would stop being evidence that the protocol is enough.
 # ============================================================================
 
-# --- support: the OS mock, a test double rather than a test -----------------
+# --- support: the platform mock, a test double rather than a test -----------------
 # Built here because nothing in the product links it: famulusd uses a real
 # adapter and a shell never sees one at all.
 
-famulus_library(famulus_os_mock STATIC support/os_mock/src)
+famulus_library(famulus_platform_mock STATIC support/platform_mock/src)
 
-if(TARGET famulus_os_mock)
-    target_link_libraries(famulus_os_mock PUBLIC famulus_os_api)
+if(TARGET famulus_platform_mock)
+    target_link_libraries(famulus_platform_mock PUBLIC famulus_platform_api)
 
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/support/os_mock/include")
-        target_include_directories(famulus_os_mock PUBLIC
-            "${CMAKE_CURRENT_SOURCE_DIR}/support/os_mock/include")
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/support/platform_mock/include")
+        target_include_directories(famulus_platform_mock PUBLIC
+            "${CMAKE_CURRENT_SOURCE_DIR}/support/platform_mock/include")
     endif()
 endif()
 
@@ -40,8 +40,8 @@ if(TARGET famulus_unit_tests)
         message(FATAL_ERROR "unit tests exist but famulus_core does not: add sources under src/core/")
     endif()
 
-    if(TARGET famulus_os_mock)
-        target_link_libraries(famulus_unit_tests PRIVATE famulus_os_mock)
+    if(TARGET famulus_platform_mock)
+        target_link_libraries(famulus_unit_tests PRIVATE famulus_platform_mock)
     endif()
 endif()
 
@@ -52,8 +52,8 @@ famulus_test_target(famulus_it_tests integration)
 if(TARGET famulus_it_tests)
     target_link_libraries(famulus_it_tests PRIVATE famulus_proto)
 
-    if(TARGET famulus_os_mock)
-        target_link_libraries(famulus_it_tests PRIVATE famulus_os_mock)
+    if(TARGET famulus_platform_mock)
+        target_link_libraries(famulus_it_tests PRIVATE famulus_platform_mock)
     endif()
 
     # The suite drives real binaries, so build them before running it.

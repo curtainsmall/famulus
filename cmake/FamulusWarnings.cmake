@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 #  famulus - diagnostics and sanitizers
 #
 #  .clang-format owns layout, this file owns diagnostics. Warnings apply to
@@ -26,7 +26,7 @@ else()
         -Wpedantic
         -Wshadow)
 
-    # C++-only diagnostics must not reach the C translation units in os/;
+    # C++-only diagnostics must not reach the C translation units in src/platform/;
     # an unknown -W flag would turn into an error under -Werror.
     target_compile_options(famulus_warnings INTERFACE
         $<$<COMPILE_LANGUAGE:CXX>:-Wnon-virtual-dtor>

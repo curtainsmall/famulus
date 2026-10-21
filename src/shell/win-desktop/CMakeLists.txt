@@ -3,11 +3,11 @@
 #
 #  Native, not a cross-platform shell pretending: an overlay that does not steal
 #  focus, a tabbed main window, and a notification adapter that hands artifacts
-#  to the OS. Those three are the same product surfaces on every OS but not the
+#  to the platform. Those three are the same product surfaces on every platform but not the
 #  same code - frameless, always-on-top, non-activating focus and IME behave
 #  differently on each platform, so each platform gets its own shell directory.
 #
-#  Links famulus_proto only. Adding famulus_core or famulus_os_* here would
+#  Links famulus_proto only. Adding famulus_core or famulus_platform_* here would
 #  break crash isolation, multi-client support and the single permission
 #  identity, so do not.
 # ============================================================================

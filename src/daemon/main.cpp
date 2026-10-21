@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 //  src/daemon/main.cpp - famulusd entry point
 //
 //  Process bootstrap, not the brain. Argument parsing, single-instance
@@ -8,7 +8,7 @@
 //  file up at all.
 //
 //  This is the only file that knows the daemon exists as a process. Nothing
-//  here reaches into the OS adapter directly: the daemon asks it through the
+//  here reaches into the platform adapter directly: the daemon asks it through the
 //  bridge in the core, never from its entry point.
 // ============================================================================
 
