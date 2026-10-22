@@ -19,7 +19,15 @@
 #
 #  "Platform" here means the environment the daemon runs in, not an operating
 #  system: a desktop OS, a server, a cloud backend. Only the Windows adapter
-#  exists today; adding another means adding src/platform/<name>.
+#  exists today; adding another means adding src/platform/impl/<name>.
+#
+#  A module that publishes headers keeps them apart from its sources:
+#
+#    include/   the headers another module may include
+#    impl/      the sources, and the headers that go with them
+#
+#  src/base is the only module shaped that way today. The others publish nothing
+#  a neighbour includes, so their sources and headers stay together.
 #
 #  Everything generated lands under build/, so `git clean -xdf` is the only
 #  reset needed.

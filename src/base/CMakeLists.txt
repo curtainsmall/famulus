@@ -13,7 +13,7 @@
 
 set(CMAKE_FOLDER "lib")
 
-famulus_library(famulus_base STATIC src)
+famulus_library(famulus_base STATIC impl)
 
 if(NOT TARGET famulus_base)
     # An empty layer is still a layer: consumers keep their link line and this
