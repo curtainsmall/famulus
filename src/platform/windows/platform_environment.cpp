@@ -42,6 +42,23 @@ namespace
         return nullptr;
     }
 
+    auto KindName(FamPathKind kind) -> const wchar_t*
+    {
+        switch (kind)
+        {
+        case FAM_PATH_CONFIG:
+            return L"config";
+        case FAM_PATH_CACHE:
+            return L"cache";
+        case FAM_PATH_STATE:
+            return L"state";
+        case FAM_PATH_DATA:
+            return L"data";
+        }
+
+        return L"data";
+    }
+
     auto EnvironmentVariable(const wchar_t* name) -> std::wstring
     {
         const DWORD needed = ::GetEnvironmentVariableW(name, nullptr, 0);
@@ -166,6 +183,11 @@ namespace Famulus::Windows
         }
 
         path.append(AppDirectoryName);
+
+        // One subdirectory per kind, so the four roots the ABI promises are four
+        // directories here too instead of all landing in the same place.
+        path.push_back(L'\\');
+        path.append(KindName(kind));
 
         return path;
     }
