@@ -27,8 +27,8 @@ namespace Famulus
     {
     public:
         // The listener is borrowed: the platform owns it, and
-        // fam_platform_terminate frees it when the daemon stops.
-        explicit DaemonServer(struct fam_listener* listener);
+        // famTerminate frees it when the daemon stops.
+        explicit DaemonServer(FamListener* listener);
         ~DaemonServer() = default;
 
         DaemonServer(const DaemonServer&) = delete;
@@ -42,6 +42,6 @@ namespace Famulus
         // Returns the reply line, and sets `shutdown` when the daemon should stop.
         auto HandleRequest(std::string_view request, bool& shutdown) -> std::string;
 
-        struct fam_listener* Listener;
+        FamListener* Listener;
     };
 }

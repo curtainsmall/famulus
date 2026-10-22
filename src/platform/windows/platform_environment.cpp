@@ -23,11 +23,11 @@ namespace
 {
     constexpr wchar_t AppDirectoryName[] = L"famulus";
 
-    constexpr enum fam_path_kind AllPathKinds[] = {FAM_PATH_DATA, FAM_PATH_CONFIG, FAM_PATH_CACHE, FAM_PATH_STATE};
+    constexpr FamPathKind AllPathKinds[] = {FAM_PATH_DATA, FAM_PATH_CONFIG, FAM_PATH_CACHE, FAM_PATH_STATE};
 
     // Storage roots are platform conventions, never guesses: a sandboxed or
     // roaming build moves them, and the daemon must not care.
-    auto GetRootVariable(enum fam_path_kind kind) -> const wchar_t*
+    auto RootVariableFor(FamPathKind kind) -> const wchar_t*
     {
         switch (kind)
         {
@@ -42,7 +42,7 @@ namespace
         return nullptr;
     }
 
-    auto GetEnvironmentVariable(const wchar_t* name) -> std::wstring
+    auto EnvironmentVariable(const wchar_t* name) -> std::wstring
     {
         const DWORD needed = ::GetEnvironmentVariableW(name, nullptr, 0);
 
@@ -73,7 +73,7 @@ namespace Famulus::Windows
         // The result is kept, because there is nobody to report to yet.
         bool ready = true;
 
-        for (const enum fam_path_kind kind : AllPathKinds)
+        for (const FamPathKind kind : AllPathKinds)
         {
             ready = EnsureDirectory(kind) && ready;
         }
@@ -81,17 +81,14 @@ namespace Famulus::Windows
         Ready = ready;
     }
 
-    PlatformEnvironment::~PlatformEnvironment()
-    {
-        HostTable = nullptr;
-    }
+    PlatformEnvironment::~PlatformEnvironment() = default;
 
-    auto PlatformEnvironment::GetHost() const -> const struct fam_host*
+    auto PlatformEnvironment::GetHost() const -> const FamHost*
     {
         return HostTable;
     }
 
-    void PlatformEnvironment::SetHost(const struct fam_host* host)
+    void PlatformEnvironment::SetHost(const FamHost* host)
     {
         HostTable = host;
     }
@@ -102,6 +99,11 @@ namespace Famulus::Windows
         {
             HostTable->log(level, category, message);
         }
+    }
+
+    auto PlatformEnvironment::IsReady() const -> bool
+    {
+        return Ready;
     }
 
     auto PlatformEnvironment::ConvertToWide(std::string_view text) -> std::wstring
@@ -125,12 +127,7 @@ namespace Famulus::Windows
         return wide;
     }
 
-    auto PlatformEnvironment::IsReady() const -> bool
-    {
-        return Ready;
-    }
-
-    auto PlatformEnvironment::EnsureDirectory(enum fam_path_kind kind) const -> bool
+    auto PlatformEnvironment::EnsureDirectory(FamPathKind kind) const -> bool
     {
         const std::wstring path = GetWidePathFor(kind);
 
@@ -147,16 +144,16 @@ namespace Famulus::Windows
         return true;
     }
 
-    auto PlatformEnvironment::GetWidePathFor(enum fam_path_kind kind) const -> std::wstring
+    auto PlatformEnvironment::GetWidePathFor(FamPathKind kind) const -> std::wstring
     {
-        const wchar_t* variable = GetRootVariable(kind);
+        const wchar_t* variable = RootVariableFor(kind);
 
         if (variable == nullptr)
         {
             return {};
         }
 
-        std::wstring path = GetEnvironmentVariable(variable);
+        std::wstring path = EnvironmentVariable(variable);
 
         if (path.empty())
         {
@@ -173,7 +170,7 @@ namespace Famulus::Windows
         return path;
     }
 
-    auto PlatformEnvironment::GetPathFor(enum fam_path_kind kind) const -> std::string
+    auto PlatformEnvironment::GetPathFor(FamPathKind kind) const -> std::string
     {
         const std::wstring wide = GetWidePathFor(kind);
 
@@ -195,5 +192,12 @@ namespace Famulus::Windows
             CP_UTF8, 0, wide.data(), static_cast<int>(wide.size()), narrow.data(), needed, nullptr, nullptr);
 
         return narrow;
+    }
+
+    auto PlatformEnvironment::GetPathView(FamPathKind kind) -> const char*
+    {
+        PathScratch = GetPathFor(kind);
+
+        return PathScratch.empty() ? nullptr : PathScratch.data();
     }
 } // namespace Famulus::Windows

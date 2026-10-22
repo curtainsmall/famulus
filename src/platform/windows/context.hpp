@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "hotkey_worker.hpp"
@@ -17,13 +18,13 @@
 #include "platform_environment.hpp"
 #include "secret_store.hpp"
 
-struct fam_stream
+struct FamStream
 {
     struct fam_context* Owner;
     Famulus::Windows::NamedPipe Pipe;
 };
 
-struct fam_listener
+struct FamListener
 {
     struct fam_context* Owner;
 
@@ -33,17 +34,17 @@ struct fam_listener
 
 struct fam_context
 {
-    explicit fam_context(const struct fam_host* host);
+    explicit fam_context(const FamHost* host);
 
     ~fam_context();
 
     fam_context(const fam_context&) = delete;
     auto operator=(const fam_context&) -> fam_context& = delete;
 
-    void Track(struct fam_listener* listener);
-    void Track(struct fam_stream* stream);
-    void Forget(struct fam_listener* listener);
-    void Forget(struct fam_stream* stream);
+    void Track(FamListener* listener);
+    void Track(FamStream* stream);
+    void Forget(FamListener* listener);
+    void Forget(FamStream* stream);
 
     // Declaration order is construction order: the capabilities need the
     // environment, so it must come first.
@@ -51,7 +52,10 @@ struct fam_context
     Famulus::Windows::HotkeyWorker Hotkeys;
     Famulus::Windows::SecretStore Secrets;
 
+    // Scratch for the borrowed line the ABI hands out on the last read.
+    std::string LineScratch;
+
     // Every handle handed out, so destroy can free the leftovers.
-    std::vector<struct fam_listener*> Listeners;
-    std::vector<struct fam_stream*> Streams;
+    std::vector<FamListener*> Listeners;
+    std::vector<FamStream*> Streams;
 };

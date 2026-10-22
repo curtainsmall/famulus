@@ -44,8 +44,8 @@ namespace Famulus::Windows
 
         // "Ctrl+Alt+Shift+K" and friends. Parsing is this class's business
         // because the accelerator is what it registers and reports back.
-        auto Bind(std::string_view accelerator, uint32_t& out_id) -> fam_status_t;
-        auto Unbind(uint32_t id) -> fam_status_t;
+        auto Bind(std::string_view accelerator, uint32_t& out_id) -> FamStatus;
+        auto Unbind(uint32_t id) -> FamStatus;
 
         // Stops the thread and drops every registration.
         void Stop();

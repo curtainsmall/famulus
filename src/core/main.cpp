@@ -50,7 +50,7 @@ The daemon listens on a per-user named pipe; famulusctl talks to it.
         std::fprintf(stderr, "[%d %s] %s\n", level, category, message);
     }
 
-    void HostPostEvent(const struct fam_event* event)
+    void HostPostEvent(const FamEvent* event)
     {
         std::fprintf(stderr,
                      "event %s %.*s\n",
@@ -103,26 +103,26 @@ int main(int argc, char** argv)
 
     static_cast<void>(foreground);
 
-    const struct fam_host host{sizeof(struct fam_host), HostLog, HostPostEvent, HostMonotonicMs};
+    const FamHost host{sizeof(FamHost), HostLog, HostPostEvent, HostMonotonicMs};
 
-    if (fam_platform_init(&host) != FAM_OK)
+    if (famInit(&host) != FAM_OK)
     {
         PrintError("the platform adapter refused to start");
         return 1;
     }
 
-    if (fam_platform_can_listen() == 0)
+    if (famCanListen() == 0)
     {
-        fam_platform_terminate();
+        famTerminate();
         PrintError("this platform has no local endpoint; there is nobody to serve");
         return 1;
     }
 
-    struct fam_listener* listener = nullptr;
+    FamListener* listener = nullptr;
 
-    if (fam_platform_listen(&listener) != FAM_OK || listener == nullptr)
+    if (famListen(&listener) != FAM_OK || listener == nullptr)
     {
-        fam_platform_terminate();
+        famTerminate();
         PrintError("another famulusd is already running for this user");
         return 1;
     }
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
     const int status = server.Run();
 
     // One call frees the listener and anything else the platform allocated.
-    fam_platform_terminate();
+    famTerminate();
 
     return status;
 }

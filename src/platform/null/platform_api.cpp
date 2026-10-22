@@ -3,7 +3,7 @@
 //  that has nothing
 //
 //  What a server or a cloud deployment compiles against: the same contract, no
-//  capabilities. Zero capabilities and FAM_E_UNSUPPORTED for everything that
+//  capabilities. Zero capabilities and FAM_UNSUPPORTED for everything that
 //  would need a desktop, so the daemon exercises its degradation paths instead of
 //  discovering the difference at runtime.
 // ============================================================================
@@ -17,42 +17,42 @@ namespace
 
 extern "C"
 {
-    fam_status_t fam_platform_init(const struct fam_host* host)
+    FamStatus famInit(const FamHost* host)
     {
-        if (host == nullptr || host->size < sizeof(struct fam_host))
+        if (host == nullptr || host->size < sizeof(FamHost))
         {
-            return FAM_E_INVALID;
+            return FAM_INVALID;
         }
 
         if (Initialised)
         {
-            return FAM_E_BUSY;
+            return FAM_BUSY;
         }
 
         Initialised = true;
         return FAM_OK;
     }
 
-    void fam_platform_terminate(void)
+    void famTerminate(void)
     {
         Initialised = false;
     }
 
-    uint32_t fam_platform_abi_version(void)
+    uint32_t famGetAbiVersion(void)
     {
         return FAM_PLATFORM_ABI_VERSION;
     }
 
-    fam_capabilities_t fam_platform_capabilities(void)
+    FamCapabilities famGetCapabilities(void)
     {
         return 0;
     }
 
-    fam_status_t fam_platform_limits(struct fam_limits* out_limits)
+    FamStatus famGetLimits(FamLimits* out_limits)
     {
         if (!Initialised || out_limits == nullptr)
         {
-            return FAM_E_INVALID;
+            return FAM_INVALID;
         }
 
         out_limits->notification_max_actions = 0;
@@ -63,107 +63,106 @@ extern "C"
         return FAM_OK;
     }
 
-    fam_status_t fam_platform_paths(enum fam_path_kind kind, char* buf, size_t* inout_len)
+    FamStatus famGetPath(FamPathKind kind, const char** out_path)
     {
         (void)kind;
-        (void)buf;
-        (void)inout_len;
+        (void)out_path;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_hotkey_bind(const char* accelerator, uint32_t* out_id)
+    FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id)
     {
         (void)accelerator;
         (void)out_id;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_hotkey_unbind(uint32_t id)
+    FamStatus famUnbindHotkey(uint32_t id)
     {
         (void)id;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_secret_set(const char* name, const void* data, size_t size)
+    FamStatus famSetSecret(const char* name, const void* data, size_t size)
     {
         (void)name;
         (void)data;
         (void)size;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_secret_get(const char* name, unsigned char* buf, size_t* inout_len)
+    FamStatus famGetSecret(const char* name, const unsigned char** out_data, size_t* out_len)
     {
         (void)name;
-        (void)buf;
-        (void)inout_len;
+        (void)out_data;
+        (void)out_len;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_secret_delete(const char* name)
+    FamStatus famDeleteSecret(const char* name)
     {
         (void)name;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    int fam_platform_can_listen(void)
+    int famCanListen(void)
     {
         return 0;
     }
 
-    fam_status_t fam_platform_listen(struct fam_listener** out_listener)
+    FamStatus famListen(FamListener** out_listener)
     {
         (void)out_listener;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_accept(struct fam_listener* listener, struct fam_stream** out_stream)
+    FamStatus famAccept(FamListener* listener, FamStream** out_stream)
     {
         (void)listener;
         (void)out_stream;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_connect(uint32_t timeout_ms, struct fam_stream** out_stream)
+    FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream)
     {
         (void)timeout_ms;
         (void)out_stream;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_read_line(struct fam_stream* stream, char* buf, size_t* inout_len)
+    FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
     {
         (void)stream;
-        (void)buf;
-        (void)inout_len;
+        (void)out_text;
+        (void)out_len;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    fam_status_t fam_platform_write_line(struct fam_stream* stream, const char* text, size_t length)
+    FamStatus famWriteLine(FamStream* stream, const char* text, size_t length)
     {
         (void)stream;
         (void)text;
         (void)length;
 
-        return FAM_E_UNSUPPORTED;
+        return FAM_UNSUPPORTED;
     }
 
-    void fam_platform_release_stream(struct fam_stream* stream)
+    void famReleaseStream(FamStream* stream)
     {
         (void)stream;
     }
 
-    void fam_platform_release_listener(struct fam_listener* listener)
+    void famReleaseListener(FamListener* listener)
     {
         (void)listener;
     }

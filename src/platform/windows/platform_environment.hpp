@@ -26,8 +26,8 @@ namespace Famulus::Windows
         auto operator=(const PlatformEnvironment&) -> PlatformEnvironment& = delete;
 
         // The host table, or nullptr before it is attached and after detaching.
-        auto GetHost() const -> const struct fam_host*;
-        void SetHost(const struct fam_host* host);
+        auto GetHost() const -> const FamHost*;
+        void SetHost(const FamHost* host);
 
         void Log(int level, const char* category, const char* message) const;
 
@@ -35,11 +35,15 @@ namespace Famulus::Windows
         // platform refused, which callers treat as "store nothing". GetPathFor
         // returns UTF-8 for the ABI, GetWidePathFor the native form for Win32
         // calls. Neither creates anything: that is EnsureDirectory's job.
-        auto GetPathFor(enum fam_path_kind kind) const -> std::string;
-        auto GetWidePathFor(enum fam_path_kind kind) const -> std::wstring;
+        auto GetPathFor(FamPathKind kind) const -> std::string;
+        auto GetWidePathFor(FamPathKind kind) const -> std::wstring;
+
+        // The same path, borrowed: valid until the next call, which is what lets
+        // the C API hand out a string without asking the caller for a buffer.
+        auto GetPathView(FamPathKind kind) -> const char*;
 
         // Creates the directory if it is missing. True when it exists afterwards.
-        auto EnsureDirectory(enum fam_path_kind kind) const -> bool;
+        auto EnsureDirectory(FamPathKind kind) const -> bool;
 
         // Whether the constructor managed to create every directory.
         auto IsReady() const -> bool;
@@ -48,7 +52,8 @@ namespace Famulus::Windows
         static auto ConvertToWide(std::string_view text) -> std::wstring;
 
     private:
-        const struct fam_host* HostTable = nullptr;
+        const FamHost* HostTable = nullptr;
         bool Ready = false;
+        std::string PathScratch;
     };
 }

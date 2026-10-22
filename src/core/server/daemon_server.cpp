@@ -15,7 +15,7 @@ namespace
 
 namespace Famulus
 {
-    DaemonServer::DaemonServer(struct fam_listener* listener)
+    DaemonServer::DaemonServer(FamListener* listener)
         : Listener(listener)
     {
     }
@@ -24,9 +24,9 @@ namespace Famulus
     {
         while (true)
         {
-            struct fam_stream* client = nullptr;
+            FamStream* client = nullptr;
 
-            if (fam_platform_accept(Listener, &client) != FAM_OK || client == nullptr)
+            if (famAccept(Listener, &client) != FAM_OK || client == nullptr)
             {
                 return 1;
             }
@@ -36,21 +36,21 @@ namespace Famulus
 
             while (!done)
             {
-                char buffer[512]{};
-                size_t length = sizeof(buffer);
+                const char* line = nullptr;
+                size_t length = 0;
 
-                if (fam_platform_read_line(client, buffer, &length) != FAM_OK)
+                if (famReadLine(client, &line, &length) != FAM_OK)
                 {
-                    break; // client went away, or the line did not fit
+                    break; // client went away
                 }
 
-                const std::string reply = HandleRequest(std::string_view(buffer, length), shutdown);
-                fam_platform_write_line(client, reply.data(), reply.size());
+                const std::string reply = HandleRequest(std::string_view(line, length), shutdown);
+                famWriteLine(client, reply.data(), reply.size());
 
                 done = shutdown;
             }
 
-            fam_platform_release_stream(client);
+            famReleaseStream(client);
 
             if (shutdown)
             {
@@ -63,7 +63,7 @@ namespace Famulus
     {
         if (request == "status")
         {
-            const unsigned long caps = static_cast<unsigned long>(fam_platform_capabilities());
+            const unsigned long caps = static_cast<unsigned long>(famGetCapabilities());
 
             return std::format("ok protocol=1 daemon=running platform=windows caps=0x{:08x}", caps);
         }

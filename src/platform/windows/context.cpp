@@ -34,7 +34,7 @@ namespace
     }
 } // namespace
 
-fam_context::fam_context(const struct fam_host* host)
+fam_context::fam_context(const FamHost* host)
     : Hotkeys(Environment),
       Secrets(Environment)
 {
@@ -50,22 +50,22 @@ fam_context::~fam_context()
     DeleteAll(Listeners);
 }
 
-void fam_context::Track(struct fam_listener* listener)
+void fam_context::Track(FamListener* listener)
 {
     ::Track(Listeners, listener);
 }
 
-void fam_context::Track(struct fam_stream* stream)
+void fam_context::Track(FamStream* stream)
 {
     ::Track(Streams, stream);
 }
 
-void fam_context::Forget(struct fam_listener* listener)
+void fam_context::Forget(FamListener* listener)
 {
     ::Forget(Listeners, listener);
 }
 
-void fam_context::Forget(struct fam_stream* stream)
+void fam_context::Forget(FamStream* stream)
 {
     ::Forget(Streams, stream);
 }

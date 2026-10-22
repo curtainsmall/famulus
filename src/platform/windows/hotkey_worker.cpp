@@ -105,7 +105,7 @@ namespace
     }
 
     auto ParseAccelerator(std::string_view text, UINT& modifiers, UINT& virtual_key, std::string& canonical)
-        -> fam_status_t
+        -> FamStatus
     {
         modifiers = 0;
         virtual_key = 0;
@@ -113,7 +113,7 @@ namespace
 
         if (text.empty())
         {
-            return FAM_E_INVALID;
+            return FAM_INVALID;
         }
 
         std::vector<std::string_view> tokens;
@@ -135,7 +135,7 @@ namespace
 
         if (tokens.size() < 2)
         {
-            return FAM_E_INVALID; // a bare key would take that key from every app
+            return FAM_INVALID; // a bare key would take that key from every app
         }
 
         std::string key_name;
@@ -149,7 +149,7 @@ namespace
             {
                 if (!ParseKey(token, virtual_key))
                 {
-                    return FAM_E_INVALID;
+                    return FAM_INVALID;
                 }
 
                 key_name.assign(token);
@@ -179,13 +179,13 @@ namespace
             }
             else
             {
-                return FAM_E_INVALID;
+                return FAM_INVALID;
             }
         }
 
         if (!have_key || modifiers == 0)
         {
-            return FAM_E_INVALID;
+            return FAM_INVALID;
         }
 
         canonical += key_name;
@@ -205,13 +205,13 @@ namespace Famulus::Windows
         Stop();
     }
 
-    auto HotkeyWorker::Bind(std::string_view accelerator, uint32_t& out_id) -> fam_status_t
+    auto HotkeyWorker::Bind(std::string_view accelerator, uint32_t& out_id) -> FamStatus
     {
         UINT modifiers = 0;
         UINT virtual_key = 0;
         std::string canonical;
 
-        const fam_status_t parsed = ParseAccelerator(accelerator, modifiers, virtual_key, canonical);
+        const FamStatus parsed = ParseAccelerator(accelerator, modifiers, virtual_key, canonical);
 
         if (parsed != FAM_OK)
         {
@@ -220,10 +220,10 @@ namespace Famulus::Windows
 
         if (!Start())
         {
-            return FAM_E_IO;
+            return FAM_IO;
         }
 
-        fam_status_t result = FAM_E_IO;
+        FamStatus result = FAM_IO;
         uint32_t id = 0;
 
         const std::function<void()> body = [&] {
@@ -231,7 +231,7 @@ namespace Famulus::Windows
 
             if (::RegisterHotKey(WindowHandle, static_cast<int>(id), modifiers, virtual_key) == 0)
             {
-                result = FAM_E_BUSY; // usually ERROR_HOTKEY_ALREADY_REGISTERED
+                result = FAM_BUSY; // usually ERROR_HOTKEY_ALREADY_REGISTERED
                 return;
             }
 
@@ -241,7 +241,7 @@ namespace Famulus::Windows
 
         if (!RunOnThread(body))
         {
-            return FAM_E_IO;
+            return FAM_IO;
         }
 
         if (result == FAM_OK)
@@ -252,14 +252,14 @@ namespace Famulus::Windows
         return result;
     }
 
-    auto HotkeyWorker::Unbind(uint32_t id) -> fam_status_t
+    auto HotkeyWorker::Unbind(uint32_t id) -> FamStatus
     {
-        fam_status_t result = FAM_E_IO;
+        FamStatus result = FAM_IO;
 
         const std::function<void()> body = [&] {
             if (::UnregisterHotKey(WindowHandle, static_cast<int>(id)) == 0)
             {
-                result = FAM_E_INVALID;
+                result = FAM_INVALID;
                 return;
             }
 
@@ -267,7 +267,7 @@ namespace Famulus::Windows
             result = FAM_OK;
         };
 
-        return RunOnThread(body) ? result : FAM_E_IO;
+        return RunOnThread(body) ? result : FAM_IO;
     }
 
     void HotkeyWorker::Stop()
@@ -419,7 +419,7 @@ namespace Famulus::Windows
             return;
         }
 
-        const struct fam_host* host = Environment.GetHost();
+        const FamHost* host = Environment.GetHost();
 
         if (host == nullptr)
         {
@@ -427,7 +427,7 @@ namespace Famulus::Windows
         }
 
         const std::string payload = "{\"accelerator\":\"" + found->second.accelerator + "\"}";
-        const struct fam_event event{"hotkey.pressed", payload.c_str(), payload.size(), GetWallMilliseconds()};
+        const FamEvent event{"hotkey.pressed", payload.c_str(), payload.size(), GetWallMilliseconds()};
 
         host->post_event(&event);
     }
