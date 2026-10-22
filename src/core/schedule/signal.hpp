@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <variant>
 
@@ -85,8 +86,8 @@ namespace Famulus
 
         static constexpr SignalKind Kind = Kind_;
 
-        TypedSignal(ValueType value, int64_t occurred_at_ms)
-            : OccurredAtMs(occurred_at_ms), Value(std::move(value))
+        TypedSignal(ValueType value, std::optional<ValueType> previous, int64_t occurred_at_ms)
+            : OccurredAtMs(occurred_at_ms), Value(std::move(value)), Previous(std::move(previous))
         {
         }
 
@@ -109,6 +110,11 @@ namespace Famulus
         }
 
         ValueType Value;
+
+        // The value this one replaced at the source. Empty when the source had
+        // nothing before it, so "arrived" and "changed" stay different questions:
+        // a report exists, and whether it flipped the value is in here.
+        std::optional<ValueType> Previous;
 
     private:
         int64_t OccurredAtMs;
