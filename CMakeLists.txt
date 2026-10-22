@@ -1,13 +1,13 @@
 # ============================================================================
 #  famulus - top level
 #
-#  Layout, and the dependency rule each directory obeys. The rule is the same
-#  shape systemd and VS Code use: a directory may only depend on those above it
-#  in this list, never on those below.
+#  Layout, and the dependency rule each directory obeys: a directory may only
+#  depend on those above it in this list, never on those below.
 #
 #    src/proto/      the contract: schemas, message types, constants. No code.
-#    src/base/       our own foundation: framing, encoding, small utilities.
-#                    Depends on nothing else in the tree.
+#    src/base/       our own foundation: logging, framing, encoding, small
+#                    utilities. Depends on nothing else in this tree, and on one
+#                    fetched library (spdlog).
 #    src/platform/   the abstracted environment: capabilities (hotkey,
 #                    notification, scheduler, secrets, paths) and the local
 #                    transport. Depends on base only.

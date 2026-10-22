@@ -24,9 +24,9 @@ namespace Famulus
     {
         while (true)
         {
-            FamStream* client = nullptr;
+            FamStream* client = famAccept(Listener);
 
-            if (famAccept(Listener, &client) != FamStatus_Ok || client == nullptr)
+            if (client == nullptr)
             {
                 return StopReason::AcceptFailed;
             }
@@ -39,7 +39,7 @@ namespace Famulus
                 const char* line = nullptr;
                 size_t length = 0;
 
-                if (famReadLine(client, &line, &length) != FamStatus_Ok)
+                if (!famReadLine(client, &line, &length))
                 {
                     break; // client went away
                 }

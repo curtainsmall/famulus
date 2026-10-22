@@ -3,34 +3,82 @@
 //  that has nothing
 //
 //  What a server or a cloud deployment compiles against: the same contract, no
-//  capabilities. Zero capabilities and FamStatus_Unsupported for everything that
+//  capabilities. Zero capabilities and FamError_Unsupported for everything that
 //  would need a desktop, so the daemon exercises its degradation paths instead of
 //  discovering the difference at runtime.
+//
+//  The error slot lives here as two file statics: with no context to hang it on,
+//  this is the whole of the adapter's state besides the initialised flag.
 // ============================================================================
+
+#include <string>
+#include <string_view>
 
 #include "platform_api.h"
 
 namespace
 {
     bool Initialised = false;
+    FamError LastError = FamError_None;
+    std::string LastErrorText;
+
+    void ClearError()
+    {
+        LastError = FamError_None;
+        LastErrorText.clear();
+    }
+
+    void SetError(FamError error, std::string_view text)
+    {
+        LastError = error;
+        LastErrorText.assign(text);
+    }
+
+    // Everything this adapter can be asked for needs a desktop it does not have.
+    auto NoDesktop() -> bool
+    {
+        SetError(FamError_Unsupported, "this platform has no local desktop");
+        return false;
+    }
+
+    auto NotReady() -> bool
+    {
+        SetError(FamError_NotReady, "famInit has not been called");
+        return false;
+    }
 } // namespace
 
 extern "C"
 {
-    FamStatus famInit(const FamHost* host)
+    FamError famGetLastError(const char** description)
     {
+        if (description != nullptr)
+        {
+            *description = LastErrorText.empty() ? nullptr : LastErrorText.c_str();
+        }
+
+        return LastError;
+    }
+
+    bool famInit(const FamHost* host)
+    {
+        ClearError();
+
         if (host == nullptr || host->size < sizeof(FamHost))
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "the host table is missing or short");
+            return false;
         }
 
         if (Initialised)
         {
-            return FamStatus_Busy;
+            SetError(FamError_Busy, "the platform is already initialised in this process");
+            return false;
         }
 
         Initialised = true;
-        return FamStatus_Ok;
+
+        return true;
     }
 
     void famTerminate(void)
@@ -45,14 +93,24 @@ extern "C"
 
     FamCapabilities famGetCapabilities(void)
     {
+        ClearError();
+
         return 0;
     }
 
-    FamStatus famGetLimits(FamLimits* out_limits)
+    bool famGetLimits(FamLimits* out_limits)
     {
-        if (!Initialised || out_limits == nullptr)
+        ClearError();
+
+        if (!Initialised)
         {
-            return FamStatus_Invalid;
+            return NotReady();
+        }
+
+        if (out_limits == nullptr)
+        {
+            SetError(FamError_Invalid, "no FamLimits to write to");
+            return false;
         }
 
         out_limits->notification_max_actions = 0;
@@ -60,101 +118,122 @@ extern "C"
         out_limits->frame_max_bytes = 64u * 1024u;
         out_limits->schedule_min_granularity_ms = 60000;
 
-        return FamStatus_Ok;
+        return true;
     }
 
-    FamStatus famGetPath(FamPathKind kind, const char** out_path)
+    const char* famGetPath(FamPathKind kind)
     {
+        ClearError();
         (void)kind;
-        (void)out_path;
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return nullptr;
     }
 
-    FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id)
+    uint32_t famBindHotkey(const char* accelerator)
     {
+        ClearError();
         (void)accelerator;
-        (void)out_id;
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return 0;
     }
 
-    FamStatus famUnbindHotkey(uint32_t id)
+    bool famUnbindHotkey(uint32_t id)
     {
+        ClearError();
         (void)id;
 
-        return FamStatus_Unsupported;
+        return NoDesktop();
     }
 
-    FamStatus famSetSecret(const char* name, const void* data, size_t size)
+    bool famSetSecret(const char* name, const void* data, size_t size)
     {
+        ClearError();
         (void)name;
         (void)data;
         (void)size;
 
-        return FamStatus_Unsupported;
+        return NoDesktop();
     }
 
-    FamStatus famGetSecret(const char* name, const unsigned char** out_data, size_t* out_len)
+    const unsigned char* famGetSecret(const char* name, size_t* out_len)
     {
+        ClearError();
         (void)name;
-        (void)out_data;
         (void)out_len;
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return nullptr;
     }
 
-    FamStatus famDeleteSecret(const char* name)
+    bool famDeleteSecret(const char* name)
     {
+        ClearError();
         (void)name;
 
-        return FamStatus_Unsupported;
+        return NoDesktop();
     }
 
-    int famCanListen(void)
+    bool famCanListen(void)
     {
-        return 0;
+        ClearError();
+
+        // Not an error: this platform simply has no local endpoint, and the
+        // daemon says so rather than reporting a second instance.
+        return false;
     }
 
-    FamStatus famListen(FamListener** out_listener)
+    FamListener* famListen(void)
     {
-        (void)out_listener;
+        ClearError();
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return nullptr;
     }
 
-    FamStatus famAccept(FamListener* listener, FamStream** out_stream)
+    FamStream* famAccept(FamListener* listener)
     {
+        ClearError();
         (void)listener;
-        (void)out_stream;
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return nullptr;
     }
 
-    FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream)
+    FamStream* famConnect(uint32_t timeout_ms)
     {
+        ClearError();
         (void)timeout_ms;
-        (void)out_stream;
 
-        return FamStatus_Unsupported;
+        NoDesktop();
+
+        return nullptr;
     }
 
-    FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
+    bool famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
     {
+        ClearError();
         (void)stream;
         (void)out_text;
         (void)out_len;
 
-        return FamStatus_Unsupported;
+        return NoDesktop();
     }
 
-    FamStatus famWriteLine(FamStream* stream, const char* text, size_t length)
+    bool famWriteLine(FamStream* stream, const char* text, size_t length)
     {
+        ClearError();
         (void)stream;
         (void)text;
         (void)length;
 
-        return FamStatus_Unsupported;
+        return NoDesktop();
     }
 
     void famReleaseStream(FamStream* stream)

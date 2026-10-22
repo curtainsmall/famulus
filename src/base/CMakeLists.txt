@@ -8,7 +8,6 @@
 #  Dependency rule: base depends on nothing else in this tree, and on one
 #  third-party library (spdlog, populated by FetchContent). If something here
 #  reaches for src/platform/, src/core/ or a shell, it belongs somewhere else.
-#  This is the same role VS Code gives src/vs/base and systemd gives src/basic.
 # ============================================================================
 
 set(CMAKE_FOLDER "lib")

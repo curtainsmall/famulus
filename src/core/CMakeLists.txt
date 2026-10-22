@@ -12,7 +12,7 @@
 #
 #  Dependency rule: core may use base and platform, and is never linked by a
 #  shell. Nothing here includes a Windows header - everything platform-specific
-#  goes through famulus_platform.h, and only core/bridge/ includes it at all.
+#  goes through platform_api.h, and only main.cpp and server/ include it at all.
 # ============================================================================
 
 set(CMAKE_FOLDER "core")

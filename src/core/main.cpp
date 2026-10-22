@@ -44,6 +44,16 @@ The daemon listens on a per-user named pipe; famulusctl talks to it.
         std::fwrite(line.data(), 1, line.size(), stderr);
     }
 
+    // The platform reports why a call failed out of band. Read it before the next
+    // call, and always before famTerminate: the sentence lives in the context.
+    void PrintPlatformError(std::string_view what)
+    {
+        const char* why = nullptr;
+        famGetLastError(&why);
+
+        PrintError(why != nullptr ? std::format("{}: {}", what, why) : std::string(what));
+    }
+
     // Set once the platform has told us where the state directory is. Before
     // that, and if the file cannot be opened, logging stays on stderr.
     Famulus::Logger* logger = nullptr;
@@ -135,17 +145,17 @@ int main(int argc, char** argv)
 
     const FamHost host{sizeof(FamHost), HostLog, HostPostEvent, HostMonotonicMs};
 
-    if (famInit(&host) != FamStatus_Ok)
+    if (!famInit(&host))
     {
-        PrintError("the platform adapter refused to start");
+        PrintPlatformError("the platform adapter refused to start");
         return 1;
     }
 
     // The state directory exists now, so the log can live in it.
-    const char* state_directory = nullptr;
+    const char* state_directory = famGetPath(FamPathKind_State);
     std::string log_directory;
 
-    if (famGetPath(FamPathKind_State, &state_directory) == FamStatus_Ok && state_directory != nullptr)
+    if (state_directory != nullptr)
     {
         log_directory = std::string(state_directory) + "\\logs";
     }
@@ -155,19 +165,19 @@ int main(int argc, char** argv)
 
     HostLog(FamLogLevel_Info, "daemon", file_logger.IsOpen() ? "logging to the state directory" : "logging to stderr only");
 
-    if (famCanListen() == 0)
+    if (!famCanListen())
     {
+        PrintPlatformError("this platform has no local endpoint");
         famTerminate();
-        PrintError("this platform has no local endpoint; there is nobody to serve");
         return 1;
     }
 
-    FamListener* listener = nullptr;
+    FamListener* listener = famListen();
 
-    if (famListen(&listener) != FamStatus_Ok || listener == nullptr)
+    if (listener == nullptr)
     {
+        PrintPlatformError("cannot listen for this user");
         famTerminate();
-        PrintError("another famulusd is already running for this user");
         return 1;
     }
 

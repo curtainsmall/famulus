@@ -34,14 +34,14 @@ namespace
     }
 } // namespace
 
-fam_context::fam_context(const FamHost* host)
+FamContext::FamContext(const FamHost* host)
     : Hotkeys(Environment),
       Secrets(Environment)
 {
     Environment.SetHost(host);
 }
 
-fam_context::~fam_context()
+FamContext::~FamContext()
 {
     // The worker owns a thread; it must stop before anything else goes away.
     Hotkeys.Stop();
@@ -50,22 +50,44 @@ fam_context::~fam_context()
     DeleteAll(Listeners);
 }
 
-void fam_context::Track(FamListener* listener)
+void FamContext::Track(FamListener* listener)
 {
     ::Track(Listeners, listener);
 }
 
-void fam_context::Track(FamStream* stream)
+void FamContext::Track(FamStream* stream)
 {
     ::Track(Streams, stream);
 }
 
-void fam_context::Forget(FamListener* listener)
+void FamContext::Forget(FamListener* listener)
 {
     ::Forget(Listeners, listener);
 }
 
-void fam_context::Forget(FamStream* stream)
+void FamContext::Forget(FamStream* stream)
 {
     ::Forget(Streams, stream);
+}
+
+void FamContext::ClearError()
+{
+    LastError = FamError_None;
+    ErrorText.clear();
+}
+
+void FamContext::SetError(FamError error, std::string_view description)
+{
+    LastError = error;
+    ErrorText.assign(description);
+}
+
+auto FamContext::GetError(const char** description) -> FamError
+{
+    if (description != nullptr)
+    {
+        *description = ErrorText.empty() ? nullptr : ErrorText.c_str();
+    }
+
+    return LastError;
 }

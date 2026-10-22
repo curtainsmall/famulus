@@ -129,7 +129,7 @@ namespace Famulus::Windows
         return ::GetLastError() == ERROR_PIPE_CONNECTED;
     }
 
-    auto NamedPipe::Connect(const std::wstring& name, std::chrono::milliseconds timeout) -> bool
+    auto NamedPipe::Connect(const std::wstring& name, std::chrono::milliseconds timeout) -> FamError
     {
         Close();
         Name = name;
@@ -142,19 +142,26 @@ namespace Famulus::Windows
 
             if (Handle != INVALID_HANDLE_VALUE)
             {
-                return true;
+                return FamError_None;
             }
 
             const DWORD error = ::GetLastError();
 
+            // Nothing of that name exists: no daemon has ever listened here, and
+            // waiting would only delay the answer.
+            if (error == ERROR_FILE_NOT_FOUND)
+            {
+                return FamError_NotFound;
+            }
+
             if (error != ERROR_PIPE_BUSY)
             {
-                return false; // no daemon listening
+                return FamError_System;
             }
 
             if (std::chrono::steady_clock::now() >= deadline)
             {
-                return false;
+                return FamError_Timeout;
             }
 
             ::WaitNamedPipeW(name.c_str(), ConnectTimeoutMs);

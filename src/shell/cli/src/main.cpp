@@ -66,20 +66,30 @@ usage:
         return 0;
     }
 
+    // The platform reports why a call failed out of band; read it before the next
+    // call, and always before famTerminate: the sentence lives in the context.
+    void PrintPlatformError(std::string_view what)
+    {
+        const char* why = nullptr;
+        famGetLastError(&why);
+
+        PrintError(why != nullptr ? std::format("{}: {}", what, why) : std::string(what));
+    }
+
     auto Send(FamStream* stream, std::string_view request) -> ExitCode
     {
-        if (famWriteLine(stream, request.data(), request.size()) != FamStatus_Ok)
+        if (!famWriteLine(stream, request.data(), request.size()))
         {
-            PrintError("could not send the request");
+            PrintPlatformError("could not send the request");
             return ExitError;
         }
 
         const char* reply = nullptr;
         size_t length = 0;
 
-        if (famReadLine(stream, &reply, &length) != FamStatus_Ok)
+        if (!famReadLine(stream, &reply, &length))
         {
-            PrintError("the daemon closed the connection without answering");
+            PrintPlatformError("the daemon closed the connection without answering");
             return ExitError;
         }
 
@@ -116,18 +126,18 @@ int main(int argc, char** argv)
     // platform events and never needs a clock.
     const FamHost host{sizeof(FamHost), nullptr, NoEvent, NoClock};
 
-    if (famInit(&host) != FamStatus_Ok)
+    if (!famInit(&host))
     {
-        PrintError("the platform adapter refused to start");
+        PrintPlatformError("the platform adapter refused to start");
         return ExitError;
     }
 
-    FamStream* stream = nullptr;
+    FamStream* stream = famConnect(static_cast<uint32_t>(ConnectTimeout.count()));
 
-    if (famConnect(static_cast<uint32_t>(ConnectTimeout.count()), &stream) != FamStatus_Ok || stream == nullptr)
+    if (stream == nullptr)
     {
+        PrintPlatformError("no daemon answered");
         famTerminate();
-        PrintError("the daemon is not running");
         return ExitNoDaemon;
     }
 

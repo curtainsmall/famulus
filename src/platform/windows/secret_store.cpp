@@ -40,113 +40,73 @@ namespace Famulus::Windows
         // can be reported to the host.
     }
 
-    auto SecretStore::Set(std::string_view name, const void* data, size_t size) -> FamStatus
+    auto SecretStore::Set(std::string_view name, const void* data, size_t size) -> FamError
     {
         const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
-            return FamStatus_Invalid;
+            return FamError_Invalid;
         }
 
         std::vector<unsigned char> sealed;
 
-        if (Protect(static_cast<const unsigned char*>(data), size, sealed) != FamStatus_Ok)
+        if (Protect(static_cast<const unsigned char*>(data), size, sealed) != FamError_None)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         return WriteAll(path, sealed.data(), sealed.size());
     }
 
-    auto SecretStore::Get(std::string_view name, unsigned char* buf, size_t* inout_len) -> FamStatus
+    auto SecretStore::GetView(std::string_view name, const unsigned char** out_data, size_t* out_len) -> FamError
     {
-        if (inout_len == nullptr)
+        if (out_data == nullptr || out_len == nullptr)
         {
-            return FamStatus_Invalid;
+            return FamError_Invalid;
         }
 
         const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
-            return FamStatus_Invalid;
+            return FamError_Invalid;
         }
 
         std::vector<unsigned char> sealed;
-        const FamStatus read = ReadAll(path, sealed);
+        const FamError read = ReadAll(path, sealed);
 
-        if (read != FamStatus_Ok)
+        if (read != FamError_None)
         {
             return read;
         }
 
-        std::vector<unsigned char> plain;
-
-        if (Unprotect(sealed, plain) != FamStatus_Ok)
+        if (Unprotect(sealed, Scratch) != FamError_None)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
-        if (buf == nullptr || *inout_len < plain.size())
-        {
-            *inout_len = plain.size();
-            return FamStatus_NoMem;
-        }
-
-        if (!plain.empty())
-        {
-            ::memcpy(buf, plain.data(), plain.size());
-        }
-
-        *inout_len = plain.size();
-
-        return FamStatus_Ok;
-    }
-
-    auto SecretStore::GetView(std::string_view name, const unsigned char** out_data, size_t* out_len) -> FamStatus
-    {
-        if (out_data == nullptr || out_len == nullptr)
-        {
-            return FamStatus_Invalid;
-        }
-
-        size_t capacity = 0;
-        const FamStatus probe = Get(name, nullptr, &capacity);
-
-        if (probe != FamStatus_NoMem && probe != FamStatus_Ok)
-        {
-            return probe;
-        }
-
-        Scratch.assign(capacity, 0);
-
-        if (capacity != 0 && Get(name, Scratch.data(), &capacity) != FamStatus_Ok)
-        {
-            return FamStatus_Io;
-        }
-
-        *out_len = capacity;
+        *out_len = Scratch.size();
         *out_data = Scratch.empty() ? nullptr : Scratch.data();
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 
-    auto SecretStore::Delete(std::string_view name) -> FamStatus
+    auto SecretStore::Delete(std::string_view name) -> FamError
     {
         const std::wstring path = GetFileFor(name);
 
         if (path.empty())
         {
-            return FamStatus_Invalid;
+            return FamError_Invalid;
         }
 
         if (::DeleteFileW(path.c_str()) == 0)
         {
-            return ::GetLastError() == ERROR_FILE_NOT_FOUND ? FamStatus_Denied : FamStatus_Io;
+            return ::GetLastError() == ERROR_FILE_NOT_FOUND ? FamError_NotFound : FamError_System;
         }
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 
     auto SecretStore::IsValidName(std::string_view name) -> bool
@@ -221,14 +181,14 @@ namespace Famulus::Windows
         return file;
     }
 
-    auto SecretStore::ReadAll(const std::wstring& path, std::vector<unsigned char>& out) -> FamStatus
+    auto SecretStore::ReadAll(const std::wstring& path, std::vector<unsigned char>& out) -> FamError
     {
         const HANDLE handle =
             ::CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
         if (handle == INVALID_HANDLE_VALUE)
         {
-            return ::GetLastError() == ERROR_FILE_NOT_FOUND ? FamStatus_Denied : FamStatus_Io;
+            return ::GetLastError() == ERROR_FILE_NOT_FOUND ? FamError_NotFound : FamError_System;
         }
 
         LARGE_INTEGER size{};
@@ -237,7 +197,7 @@ namespace Famulus::Windows
             size.QuadPart > static_cast<LONGLONG>(MaxSecretBytes))
         {
             ::CloseHandle(handle);
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         out.resize(static_cast<size_t>(size.QuadPart));
@@ -245,7 +205,7 @@ namespace Famulus::Windows
         if (out.empty())
         {
             ::CloseHandle(handle);
-            return FamStatus_Ok;
+            return FamError_None;
         }
 
         DWORD read = 0;
@@ -254,20 +214,20 @@ namespace Famulus::Windows
 
         if (ok == 0 || read != out.size())
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 
-    auto SecretStore::WriteAll(const std::wstring& path, const unsigned char* data, size_t size) -> FamStatus
+    auto SecretStore::WriteAll(const std::wstring& path, const unsigned char* data, size_t size) -> FamError
     {
         const HANDLE handle =
             ::CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
         if (handle == INVALID_HANDLE_VALUE)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         DWORD written = 0;
@@ -276,17 +236,17 @@ namespace Famulus::Windows
 
         if (ok == 0 || written != size)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 
-    auto SecretStore::Protect(const unsigned char* data, size_t size, std::vector<unsigned char>& out) -> FamStatus
+    auto SecretStore::Protect(const unsigned char* data, size_t size, std::vector<unsigned char>& out) -> FamError
     {
         if (size > 0xFFFFFFFFu)
         {
-            return FamStatus_Invalid;
+            return FamError_Invalid;
         }
 
         DATA_BLOB input{static_cast<DWORD>(size), const_cast<BYTE*>(reinterpret_cast<const BYTE*>(data))};
@@ -294,20 +254,20 @@ namespace Famulus::Windows
 
         if (::CryptProtectData(&input, L"famulus", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output) == 0)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         out.assign(output.pbData, output.pbData + output.cbData);
         ::LocalFree(output.pbData);
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 
-    auto SecretStore::Unprotect(const std::vector<unsigned char>& data, std::vector<unsigned char>& out) -> FamStatus
+    auto SecretStore::Unprotect(const std::vector<unsigned char>& data, std::vector<unsigned char>& out) -> FamError
     {
         if (data.empty() || data.size() > 0xFFFFFFFFu)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         DATA_BLOB input{static_cast<DWORD>(data.size()), const_cast<BYTE*>(reinterpret_cast<const BYTE*>(data.data()))};
@@ -315,12 +275,12 @@ namespace Famulus::Windows
 
         if (::CryptUnprotectData(&input, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output) == 0)
         {
-            return FamStatus_Io;
+            return FamError_System;
         }
 
         out.assign(output.pbData, output.pbData + output.cbData);
         ::LocalFree(output.pbData);
 
-        return FamStatus_Ok;
+        return FamError_None;
     }
 } // namespace Famulus::Windows

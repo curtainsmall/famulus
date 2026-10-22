@@ -4,14 +4,13 @@
 #  Three targets, and the split is what lets a shell link the platform without
 #  gaining the right to call a hotkey from the wrong process:
 #
-#    famulus_platform_api    INTERFACE  the headers: famulus_platform.h (C
-#                            capabilities) and famulus_transport.h (C++ byte
-#                            stream). No code, no selection.
+#    famulus_platform_api    INTERFACE  the header: platform_api.h, the only
+#                            header in this directory. No code, no selection.
 #    famulus_platform_<name> STATIC     one adapter: src/platform/windows,
 #                            src/platform/null. Capabilities plus the local
 #                            transport implementation.
 #    famulus_platform        INTERFACE  the facade consumers link. Carries the
-#                            headers and whichever adapter the build selected.
+#                            header and whichever adapter the build selected.
 #
 #  The selection happens here and nowhere else, so no consumer repeats a
 #  platform question.

@@ -7,41 +7,110 @@
 //
 //  The context is a file-static singleton, which is what lets the rest of the
 //  header carry no handle at all. It is created by init and freed by terminate,
-//  so a caller that forgets a fam_platform_release_* still leaks nothing.
+//  so a caller that forgets a famRelease* still leaks nothing.
+//
+//  Every entry point does the same three things in the same order: clear the
+//  error slot, check the argument, act. What it returns answers "did it work";
+//  the slot answers "why not".
 // ============================================================================
 
 #include <chrono>
 #include <cstddef>
 #include <new>
 #include <string>
+#include <string_view>
 
 #include "context.hpp"
 
 namespace
 {
     // The one context of the process. Null before init and after terminate.
-    fam_context* Context = nullptr;
+    FamContext* Context = nullptr;
+
+    // An error needs somewhere to live before there is a context - famInit's own
+    // failure, and any call made before init or after terminate, would otherwise
+    // have nothing to report through.
+    FamError OrphanError = FamError_None;
+    std::string OrphanText;
+
+    void ClearError()
+    {
+        if (Context != nullptr)
+        {
+            Context->ClearError();
+            return;
+        }
+
+        OrphanError = FamError_None;
+        OrphanText.clear();
+    }
+
+    void SetError(FamError error, std::string_view text)
+    {
+        if (Context != nullptr)
+        {
+            Context->SetError(error, text);
+            return;
+        }
+
+        OrphanError = error;
+        OrphanText.assign(text);
+    }
+
+    // The argument checks every entry point starts with. Returns true when the
+    // call may continue, and leaves the slot explaining why when it may not.
+    auto Ready() -> bool
+    {
+        if (Context != nullptr)
+        {
+            return true;
+        }
+
+        SetError(FamError_NotReady, "famInit has not been called, or it failed");
+        return false;
+    }
 } // namespace
 
 extern "C"
 {
-    FamStatus famInit(const FamHost* host)
+    FamError famGetLastError(const char** description)
     {
+        // Deliberately does not clear: it would erase what it is about to report.
+        if (Context != nullptr)
+        {
+            return Context->GetError(description);
+        }
+
+        if (description != nullptr)
+        {
+            *description = OrphanText.empty() ? nullptr : OrphanText.c_str();
+        }
+
+        return OrphanError;
+    }
+
+    bool famInit(const FamHost* host)
+    {
+        ClearError();
+
         if (host == nullptr || host->size < sizeof(FamHost) || host->post_event == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "the host table is missing, short, or has no post_event");
+            return false;
         }
 
         if (Context != nullptr)
         {
-            return FamStatus_Busy;
+            SetError(FamError_Busy, "the platform is already initialised in this process");
+            return false;
         }
 
-        auto* created = new (std::nothrow) fam_context(host);
+        auto* created = new (std::nothrow) FamContext(host);
 
         if (created == nullptr)
         {
-            return FamStatus_NoMem;
+            SetError(FamError_System, "cannot allocate the platform context");
+            return false;
         }
 
         if (!created->Environment.IsReady())
@@ -49,11 +118,13 @@ extern "C"
             // A daemon that cannot create its own directories should find out at
             // startup, not at the first write.
             delete created;
-            return FamStatus_Io;
+            SetError(FamError_System, "cannot create the storage directories");
+            return false;
         }
 
         Context = created;
-        return FamStatus_Ok;
+
+        return true;
     }
 
     void famTerminate(void)
@@ -69,19 +140,31 @@ extern "C"
 
     FamCapabilities famGetCapabilities(void)
     {
+        ClearError();
+
         if (Context == nullptr)
         {
+            SetError(FamError_NotReady, "famInit has not been called");
             return 0;
         }
 
         return static_cast<FamCapabilities>(FamCapability_Paths | FamCapability_Hotkey | FamCapability_Secret);
     }
 
-    FamStatus famGetLimits(FamLimits* out_limits)
+    bool famGetLimits(FamLimits* out_limits)
     {
-        if (Context == nullptr || out_limits == nullptr)
+        ClearError();
+
+        if (Context == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_NotReady, "famInit has not been called");
+            return false;
+        }
+
+        if (out_limits == nullptr)
+        {
+            SetError(FamError_Invalid, "no FamLimits to write to");
+            return false;
         }
 
         out_limits->notification_max_actions = 0; /* no notification channel yet */
@@ -89,100 +172,197 @@ extern "C"
         out_limits->frame_max_bytes = 4u * 1024u * 1024u;
         out_limits->schedule_min_granularity_ms = 60000; /* Task Scheduler granularity */
 
-        return FamStatus_Ok;
+        return true;
     }
 
-    FamStatus famGetPath(FamPathKind kind, const char** out_path)
+    const char* famGetPath(FamPathKind kind)
     {
-        if (Context == nullptr || out_path == nullptr)
+        ClearError();
+
+        if (!Ready())
         {
-            return FamStatus_Invalid;
+            return nullptr;
         }
 
-        *out_path = nullptr;
-
-        if (kind != FamPathKind_Config && kind != FamPathKind_Data && kind != FamPathKind_Cache && kind != FamPathKind_State)
+        if (kind != FamPathKind_Config && kind != FamPathKind_Data && kind != FamPathKind_Cache &&
+            kind != FamPathKind_State)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "unknown FamPathKind");
+            return nullptr;
         }
 
         if (!Context->Environment.EnsureDirectory(kind))
         {
-            return FamStatus_Io;
+            SetError(FamError_System, "cannot create the directory for this kind");
+            return nullptr;
         }
 
-        *out_path = Context->Environment.GetPathView(kind);
+        const char* path = Context->Environment.GetPathView(kind);
 
-        return *out_path != nullptr ? FamStatus_Ok : FamStatus_Io;
-    }
-
-    FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id)
-    {
-        if (Context == nullptr || accelerator == nullptr || out_id == nullptr)
+        if (path == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_System, "the directory has no path");
         }
 
-        return Context->Hotkeys.Bind(accelerator, *out_id);
+        return path;
     }
 
-    FamStatus famUnbindHotkey(uint32_t id)
+    uint32_t famBindHotkey(const char* accelerator)
     {
-        if (Context == nullptr || id == 0)
+        ClearError();
+
+        if (!Ready())
         {
-            return FamStatus_Invalid;
+            return 0;
         }
 
-        return Context->Hotkeys.Unbind(id);
-    }
-
-    FamStatus famSetSecret(const char* name, const void* data, size_t size)
-    {
-        if (Context == nullptr || name == nullptr || (data == nullptr && size != 0))
+        if (accelerator == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "no accelerator");
+            return 0;
         }
 
-        return Context->Secrets.Set(name, data, size);
-    }
+        uint32_t id = 0;
+        const FamError result = Context->Hotkeys.Bind(accelerator, id);
 
-    FamStatus famGetSecret(const char* name, const unsigned char** out_data, size_t* out_len)
-    {
-        if (Context == nullptr || name == nullptr || out_data == nullptr || out_len == nullptr)
+        if (result == FamError_Busy)
         {
-            return FamStatus_Invalid;
+            SetError(result, "that accelerator is already registered");
+            return 0;
         }
 
-        return Context->Secrets.GetView(name, out_data, out_len);
-    }
-
-    FamStatus famDeleteSecret(const char* name)
-    {
-        if (Context == nullptr || name == nullptr)
+        if (result != FamError_None)
         {
-            return FamStatus_Invalid;
+            SetError(result, "the accelerator was refused");
+            return 0;
         }
 
-        return Context->Secrets.Delete(name);
+        return id;
     }
 
-    int famCanListen(void)
+    bool famUnbindHotkey(uint32_t id)
     {
-        return Context != nullptr ? 1 : 0;
-    }
+        ClearError();
 
-    FamStatus famListen(FamListener** out_listener)
-    {
-        if (Context == nullptr || out_listener == nullptr)
+        if (!Ready())
         {
-            return FamStatus_Invalid;
+            return false;
+        }
+
+        if (id == 0)
+        {
+            SetError(FamError_Invalid, "0 is never a hotkey id");
+            return false;
+        }
+
+        const FamError result = Context->Hotkeys.Unbind(id);
+
+        if (result != FamError_None)
+        {
+            SetError(result, "no hotkey is registered under that id");
+        }
+
+        return result == FamError_None;
+    }
+
+    bool famSetSecret(const char* name, const void* data, size_t size)
+    {
+        ClearError();
+
+        if (!Ready())
+        {
+            return false;
+        }
+
+        if (name == nullptr || (data == nullptr && size != 0))
+        {
+            SetError(FamError_Invalid, "no name, or no data with a non-zero size");
+            return false;
+        }
+
+        const FamError result = Context->Secrets.Set(name, data, size);
+
+        if (result != FamError_None)
+        {
+            SetError(result, "cannot store the secret");
+        }
+
+        return result == FamError_None;
+    }
+
+    const unsigned char* famGetSecret(const char* name, size_t* out_len)
+    {
+        ClearError();
+
+        if (!Ready())
+        {
+            return nullptr;
+        }
+
+        if (name == nullptr || out_len == nullptr)
+        {
+            SetError(FamError_Invalid, "no name, or nowhere to put the length");
+            return nullptr;
+        }
+
+        const unsigned char* data = nullptr;
+        const FamError result = Context->Secrets.GetView(name, &data, out_len);
+
+        if (result != FamError_None)
+        {
+            SetError(result, "no secret is stored under that name");
+        }
+
+        return data;
+    }
+
+    bool famDeleteSecret(const char* name)
+    {
+        ClearError();
+
+        if (!Ready())
+        {
+            return false;
+        }
+
+        if (name == nullptr)
+        {
+            SetError(FamError_Invalid, "no name");
+            return false;
+        }
+
+        const FamError result = Context->Secrets.Delete(name);
+
+        if (result != FamError_None)
+        {
+            SetError(result, "no secret is stored under that name");
+        }
+
+        return result == FamError_None;
+    }
+
+    bool famCanListen(void)
+    {
+        ClearError();
+
+        return Ready();
+    }
+
+    FamListener* famListen(void)
+    {
+        ClearError();
+
+        if (!Ready())
+        {
+            return nullptr;
         }
 
         auto* listener = new (std::nothrow) FamListener{};
 
         if (listener == nullptr)
         {
-            return FamStatus_NoMem;
+            SetError(FamError_System, "cannot allocate a listener");
+            return nullptr;
         }
 
         listener->Owner = Context;
@@ -190,25 +370,29 @@ extern "C"
         if (!listener->Current.Listen(Famulus::Windows::NamedPipe::DefaultName()))
         {
             delete listener;
-            return FamStatus_Busy;
+            SetError(FamError_Busy, "another daemon already holds this endpoint");
+            return nullptr;
         }
 
         Context->Track(listener);
-        *out_listener = listener;
 
-        return FamStatus_Ok;
+        return listener;
     }
 
-    FamStatus famAccept(FamListener* listener, FamStream** out_stream)
+    FamStream* famAccept(FamListener* listener)
     {
-        if (listener == nullptr || out_stream == nullptr || listener->Owner == nullptr)
+        ClearError();
+
+        if (listener == nullptr || listener->Owner == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "no listener");
+            return nullptr;
         }
 
         if (!listener->Current.Accept())
         {
-            return FamStatus_Io;
+            SetError(FamError_System, "the endpoint refused a client");
+            return nullptr;
         }
 
         // Put a fresh instance in place before anyone can observe a moment with no
@@ -218,7 +402,8 @@ extern "C"
 
         if (!replacement.Open(served.GetName()))
         {
-            return FamStatus_Io;
+            SetError(FamError_System, "cannot open a replacement endpoint instance");
+            return nullptr;
         }
 
         listener->Current = std::move(replacement);
@@ -227,47 +412,73 @@ extern "C"
 
         if (stream == nullptr)
         {
-            return FamStatus_NoMem;
+            SetError(FamError_System, "cannot allocate a stream");
+            return nullptr;
         }
 
         listener->Owner->Track(stream);
-        *out_stream = stream;
 
-        return FamStatus_Ok;
+        return stream;
     }
 
-    FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream)
+    FamStream* famConnect(uint32_t timeout_ms)
     {
-        if (Context == nullptr || out_stream == nullptr)
+        ClearError();
+
+        if (!Ready())
         {
-            return FamStatus_Invalid;
+            return nullptr;
         }
 
         Famulus::Windows::NamedPipe pipe;
+        const FamError connected =
+            pipe.Connect(Famulus::Windows::NamedPipe::DefaultName(), std::chrono::milliseconds{timeout_ms});
 
-        if (!pipe.Connect(Famulus::Windows::NamedPipe::DefaultName(), std::chrono::milliseconds{timeout_ms}))
+        if (connected == FamError_NotFound)
         {
-            return FamStatus_Denied;
+            SetError(connected, "no daemon is listening for this user");
+            return nullptr;
+        }
+
+        if (connected == FamError_Timeout)
+        {
+            SetError(connected, "the endpoint is busy and did not answer in time");
+            return nullptr;
+        }
+
+        if (connected != FamError_None)
+        {
+            SetError(connected, "cannot connect to the endpoint");
+            return nullptr;
         }
 
         auto* stream = new (std::nothrow) FamStream{Context, std::move(pipe)};
 
         if (stream == nullptr)
         {
-            return FamStatus_NoMem;
+            SetError(FamError_System, "cannot allocate a stream");
+            return nullptr;
         }
 
         Context->Track(stream);
-        *out_stream = stream;
 
-        return FamStatus_Ok;
+        return stream;
     }
 
-    FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
+    bool famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
     {
-        if (stream == nullptr || out_text == nullptr || out_len == nullptr || stream->Owner == nullptr)
+        ClearError();
+
+        if (stream == nullptr || stream->Owner == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "no stream");
+            return false;
+        }
+
+        if (out_text == nullptr || out_len == nullptr)
+        {
+            SetError(FamError_Invalid, "nowhere to put the line");
+            return false;
         }
 
         *out_text = nullptr;
@@ -275,23 +486,41 @@ extern "C"
 
         if (!stream->Pipe.ReadLine(stream->Owner->LineScratch))
         {
-            return FamStatus_Io;
+            // A pipe that will not read has lost its peer: that is the ordinary
+            // end of a client, not a fault in the platform.
+            SetError(FamError_Closed, "the peer closed the connection");
+            return false;
         }
 
         *out_len = stream->Owner->LineScratch.size();
         *out_text = stream->Owner->LineScratch.data();
 
-        return FamStatus_Ok;
+        return true;
     }
 
-    FamStatus famWriteLine(FamStream* stream, const char* text, size_t length)
+    bool famWriteLine(FamStream* stream, const char* text, size_t length)
     {
-        if (stream == nullptr || (text == nullptr && length != 0))
+        ClearError();
+
+        if (stream == nullptr)
         {
-            return FamStatus_Invalid;
+            SetError(FamError_Invalid, "no stream");
+            return false;
         }
 
-        return stream->Pipe.WriteLine(std::string_view(text, length)) ? FamStatus_Ok : FamStatus_Io;
+        if (text == nullptr && length != 0)
+        {
+            SetError(FamError_Invalid, "no text with a non-zero length");
+            return false;
+        }
+
+        if (!stream->Pipe.WriteLine(std::string_view(text, length)))
+        {
+            SetError(FamError_Closed, "the peer closed the connection");
+            return false;
+        }
+
+        return true;
     }
 
     void famReleaseStream(FamStream* stream)

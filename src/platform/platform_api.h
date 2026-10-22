@@ -6,13 +6,13 @@
  *  compiler's ABI becomes part of the contract. Implementations may use whatever
  *  language they like behind these symbols.
  *
- *  Naming follows GLFW: one short prefix in PascalCase for types and functions.
- *  An enum value is its enum's name plus the item - FamStatus_NoMem, not
- *  FAM_NOMEM - so a value read on its own still says which enum it came from.
- *  Types are typedef'd, so a caller never writes `struct` or `enum`.
+ *  Naming: one short prefix in PascalCase for types and functions. An enum value
+ *  is its enum's name plus the item - FamError_NotFound, not FAM_NOTFOUND - so a
+ *  value read on its own still says which enum it came from. Types are
+ *  typedef'd, so a caller never writes `struct` or `enum`.
  *
- *  The life of the platform follows GLFW as well: FamInit creates the one context
- *  the process has, FamTerminate frees it along with every handle still
+ *  The life of the platform is tied to the process: famInit creates the one
+ *  context the process has, famTerminate frees it along with every handle still
  *  registered with it - including ones the caller forgot to release.
  *
  *  Rules the rest of the design depends on:
@@ -23,13 +23,17 @@
  *  3. Events travel the other way through exactly one exit: host->log and
  *     host->post_event. They must only enqueue, must never wait on the daemon,
  *     and must return in well under a millisecond.
- *  4. Outputs are written into caller-provided buffers: capacity in, required
- *     length out, FamStatus_NoMem when the capacity was short. Inputs are borrowed for
- *     the duration of the call.
+ *  4. "Did it work" is the return value: a pointer that is NULL, or false. What
+ *     went wrong is a separate question, asked with famGetLastError, so no
+ *     function spends one value on both answers.
+ *  5. Borrowed output - a returned path, a secret, the error description - stays
+ *     valid until the next fam* call or famTerminate. A caller that keeps it
+ *     copies it.
  * ========================================================================== */
 
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -42,20 +46,30 @@ extern "C"
  * structure's `size` field instead. */
 #define FAM_PLATFORM_ABI_VERSION 1u
 
-typedef enum FamStatus
+/* Why the last fam* call failed. None means it did not.
+ *
+ * One value per different thing a caller does about it: a missing capability is
+ * degraded past, a refusal is reported to the person, a timeout is retried.
+ * Anything finer - the Win32 code, the errno - belongs in the description that
+ * famGetLastError hands out, not in this enum. */
+typedef enum FamError
 {
-    FamStatus_Ok = 0,
-    FamStatus_Unsupported = -1, /* this platform has no such capability */
-    FamStatus_Denied = -2,      /* the platform refused: permission not granted */
-    FamStatus_Invalid = -3,     /* bad argument */
-    FamStatus_NoMem = -4,       /* caller buffer too small; inout_len holds the need */
-    FamStatus_Io = -5,
-    FamStatus_Busy = -6         /* already taken: another daemon, another hotkey */
-} FamStatus;
+    FamError_None = 0,
+    FamError_Unsupported, /* this platform has no such capability */
+    FamError_Denied,      /* the user or a policy refused */
+    FamError_NotFound,    /* nothing is stored under that name */
+    FamError_Invalid,     /* bad argument: the caller has a bug */
+    FamError_TooLarge,    /* over one of the FamLimits bounds */
+    FamError_Busy,        /* already taken: another daemon, another hotkey */
+    FamError_NotReady,    /* famInit was not called, or it failed */
+    FamError_Timeout,     /* a bounded wait ran out */
+    FamError_Closed,      /* the peer went away */
+    FamError_System       /* a system call failed; which one is in the description */
+} FamError;
 
 typedef enum FamCapability
 {
-    FamCapability_Paths = 1u << 0, /* FamGetPath is meaningful */
+    FamCapability_Paths = 1u << 0, /* famGetPath is meaningful */
     FamCapability_Hotkey = 1u << 1,
     FamCapability_Notify = 1u << 2,
     FamCapability_Schedule = 1u << 3,
@@ -122,12 +136,24 @@ typedef enum FamPathKind
 typedef struct FamListener FamListener;
 typedef struct FamStream FamStream;
 
+/* --- errors --------------------------------------------------------------- */
+
+/* The reason the last fam* call failed, and a sentence for a person.
+ *
+ * The description is borrowed: valid until the next fam* call or famTerminate,
+ * NULL when there is nothing to say. Every call clears the slot on entry, so a
+ * success never reports the failure before it.
+ *
+ * The slot belongs to the context, not to a thread - every call here comes from
+ * one strand (rule 2). */
+FamError famGetLastError(const char** description);
+
 /* --- lifetime ------------------------------------------------------------ */
 
 /* Creates the one context the process has: storage roots, the hotkey worker, the
  * secret store. `host` is borrowed, not copied, so it must outlive the platform.
- * Calling it twice is FamStatus_Busy; the first call owns the process. */
-FamStatus famInit(const FamHost* host);
+ * Calling it twice is FamError_Busy; the first call owns the process. */
+bool famInit(const FamHost* host);
 
 /* Frees everything, including handles the caller did not release. No event may
  * be delivered after this returns. Safe to call when not initialised. */
@@ -141,47 +167,56 @@ uint32_t famGetAbiVersion(void);
  * assuming success. */
 FamCapabilities famGetCapabilities(void);
 
-FamStatus famGetLimits(FamLimits* out_limits);
+bool famGetLimits(FamLimits* out_limits);
 
 /* A directory for the given kind, created if missing, UTF-8, no trailing
  * separator. Storage locations are platform conventions - hard coding them in
- * the daemon is how a sandboxed build breaks later. */
-FamStatus famGetPath(FamPathKind kind, const char** out_path);
+ * the daemon is how a sandboxed build breaks later. NULL when the kind is
+ * unknown or the directory cannot be made. */
+const char* famGetPath(FamPathKind kind);
 
 /* A global hotkey. `accelerator` is "Ctrl+Alt+Shift+Win" prefixes followed by one
  * key: A-Z, 0-9, F1-F24, Space, Enter, Tab, Esc. The platform registers it and
  * posts one "hotkey.pressed" event per press, with the accelerator in the
- * payload; it never decides what a press means. `out_id` must be passed back to
- * FamUnbindHotkey, and zero is never a valid id. */
-FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id);
-FamStatus famUnbindHotkey(uint32_t id);
+ * payload; it never decides what a press means.
+ *
+ * Returns the id to pass to famUnbindHotkey, or 0 - which is never a valid id -
+ * when the accelerator is malformed or already taken. */
+uint32_t famBindHotkey(const char* accelerator);
+bool famUnbindHotkey(uint32_t id);
 
 /* Secret storage. `name` is 1..64 characters of [A-Za-z0-9._-]; anything else is
- * FamStatus_Invalid, so a name can never escape its directory. Values are opaque bytes,
- * encrypted at rest by the platform. A missing secret is FamStatus_Denied. */
-FamStatus famSetSecret(const char* name, const void* data, size_t size);
-FamStatus famGetSecret(const char* name, const unsigned char** out_data, size_t* out_len);
-FamStatus famDeleteSecret(const char* name);
+ * FamError_Invalid, so a name can never escape its directory. Values are opaque
+ * bytes, encrypted at rest by the platform. A name with nothing stored under it
+ * is FamError_NotFound.
+ *
+ * famGetSecret returns the bytes borrowed from the context, with the length in
+ * `out_len`; NULL when there is nothing to return. */
+bool famSetSecret(const char* name, const void* data, size_t size);
+const unsigned char* famGetSecret(const char* name, size_t* out_len);
+bool famDeleteSecret(const char* name);
 
 /* --- transport ----------------------------------------------------------- */
 
 /* Whether this platform has a local endpoint at all: a server deployment has
  * none, and the daemon should say that rather than report a second instance. */
-int famCanListen(void);
+bool famCanListen(void);
 
-/* Takes the per-user endpoint. FamStatus_Busy when another daemon holds it, which is
- * also how single instance is enforced. The listener belongs to the context. */
-FamStatus famListen(FamListener** out_listener);
+/* Takes the per-user endpoint, or NULL when one is already held (FamError_Busy,
+ * which is also how single instance is enforced). The listener belongs to the
+ * context. */
+FamListener* famListen(void);
 
-/* Waits for one client. The stream belongs to the context; release it early or
- * let FamTerminate sweep it. */
-FamStatus famAccept(FamListener* listener, FamStream** out_stream);
+/* Waits for one client, or NULL when the wait itself failed. The stream belongs
+ * to the context; release it early or let famTerminate sweep it. */
+FamStream* famAccept(FamListener* listener);
 
-/* Client side. FamStatus_Denied when nothing is listening within the timeout. */
-FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream);
+/* Client side: NULL with FamError_Timeout when nothing was listening in time,
+ * FamError_Closed when the endpoint is there but the handshake failed. */
+FamStream* famConnect(uint32_t timeout_ms);
 
-FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len);
-FamStatus famWriteLine(FamStream* stream, const char* text, size_t length);
+bool famReadLine(FamStream* stream, const char** out_text, size_t* out_len);
+bool famWriteLine(FamStream* stream, const char* text, size_t length);
 
 /* Unregisters and frees. Passing NULL is a no-op. */
 void famReleaseStream(FamStream* stream);

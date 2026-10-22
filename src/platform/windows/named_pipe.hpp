@@ -25,6 +25,8 @@
 
 #include <windows.h>
 
+#include "platform_api.h"
+
 namespace Famulus::Windows
 {
     class NamedPipe
@@ -54,7 +56,10 @@ namespace Famulus::Windows
         auto Accept() -> bool;
 
         // Client side.
-        auto Connect(const std::wstring& name, std::chrono::milliseconds timeout) -> bool;
+        // Why the connection attempt failed: NotFound when nothing ever listened
+        // under that name, Timeout when something holds it but none would serve
+        // within the deadline, System for anything else.
+        auto Connect(const std::wstring& name, std::chrono::milliseconds timeout) -> FamError;
 
         // One message, without its terminator. Read returns false on disconnect.
         auto ReadLine(std::string& line) -> bool;
