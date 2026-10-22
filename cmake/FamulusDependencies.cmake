@@ -1,20 +1,23 @@
 # ============================================================================
 #  famulus - third-party dependencies
 #
-#  FetchContent, not a package manager. A dependency is populated into
-#  build/deps and then configured as part of this build, so it shares one
-#  compiler, one C++ standard, one warning policy and one configuration with
-#  our own code. Nothing is installed to a prefix and nothing escapes build/.
+#  FetchContent, not a package manager. A dependency is populated into build/deps
+#  and then configured as part of this build, so it shares one compiler, one C++
+#  standard, one warning policy and one configuration with our own code. Nothing
+#  is installed to a prefix and nothing escapes build/.
 #
-#  Population is OFF by default (FAMULUS_FETCH_DEPS): a checkout with no
-#  network must still configure and build. Turn it on when a source file
-#  actually includes one of these headers or links one of these targets.
+#  Downloaded by URL, not cloned by git. A URL needs nothing set up on the
+#  machine - no git credentials, no SSH keys, no proxy variables, no ~/.gitconfig
+#  - so this file says the same thing everywhere and a fresh checkout builds the
+#  same way everywhere. The SHA256 under each URL is what pins the content: it
+#  plays the role a tag plays for a clone, and an archive that changes fails the
+#  build instead of silently replacing the dependency.
 #
 #  Rules for every entry:
-#    - pinned to an immutable tag or commit, never a branch
+#    - pinned by URL_HASH, never a branch and never an unverified archive
 #    - SYSTEM        keeps third-party headers out of our -Werror wall
 #    - EXCLUDE_FROM_ALL  keeps their targets and install rules out of ours
-#    - bumping a dependency is one line, and the line is the version
+#    - bumping a dependency is two lines, and both of them are the version
 # ============================================================================
 
 if(NOT FAMULUS_FETCH_DEPS)
@@ -25,32 +28,31 @@ endif()
 include(FetchContent)
 
 # Deliberately outside the per-preset binary dir so switching presets does not
-# refetch, and deliberately inside build/ so the tree stays clean.
+# refetch, and deliberately inside build/ so the tree stays clean. FORCE because
+# FetchContent defines this cache entry itself the moment the module loads, and a
+# plain CACHE set would be a silent no-op.
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/build/deps" CACHE PATH
-    "Shared dependency tree for FetchContent, so presets do not refetch")
+    "Shared dependency tree for FetchContent, so presets do not refetch" FORCE)
 
 set(FETCHCONTENT_QUIET OFF)
 
 # --- header-mostly libraries ----------------------------------------------
 
 FetchContent_Declare(nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    GIT_SHALLOW TRUE
+    URL https://codeload.github.com/nlohmann/json/tar.gz/refs/tags/v3.11.3
+    URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
     SYSTEM
     EXCLUDE_FROM_ALL)
 
 FetchContent_Declare(asio
-    GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-    GIT_TAG asio-1-30-2
-    GIT_SHALLOW TRUE
+    URL https://codeload.github.com/chriskohlhoff/asio/tar.gz/refs/tags/asio-1-30-2
+    URL_HASH SHA256=755bd7f85a4b269c67ae0ea254907c078d408cce8e1a352ad2ed664d233780e8
     SYSTEM
     EXCLUDE_FROM_ALL)
 
 FetchContent_Declare(spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.14.1
-    GIT_SHALLOW TRUE
+    URL https://codeload.github.com/gabime/spdlog/tar.gz/refs/tags/v1.14.1
+    URL_HASH SHA256=1586508029a7d0670dfcb2d97575dcdc242d3868a259742b69f100801ab4e16b
     SYSTEM
     EXCLUDE_FROM_ALL)
 
@@ -64,6 +66,7 @@ FetchContent_MakeAvailable(nlohmann_json asio spdlog)
 
 FetchContent_Declare(sqlite3
     URL https://www.sqlite.org/2024/sqlite-amalgamation-3450100.zip
+    URL_HASH SHA256=5592243caf28b2cdef41e6ab58d25d653dfc53deded8450eb66072c929f030c4
     SYSTEM
     EXCLUDE_FROM_ALL)
 
@@ -86,9 +89,8 @@ target_compile_definitions(famulus_sqlite3 PUBLIC
 
 if(FAMULUS_BUILD_TESTS)
     FetchContent_Declare(googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG v1.14.0
-        GIT_SHALLOW TRUE
+        URL https://codeload.github.com/google/googletest/tar.gz/refs/tags/v1.14.0
+        URL_HASH SHA256=8ad598c73ad796e0d8280b082cebd82a630d73e73cd3c70057938a6501bba5d7
         SYSTEM
         EXCLUDE_FROM_ALL)
 

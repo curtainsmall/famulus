@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  famulus - build options
 #
 #  Every option here is meant to survive the project. A one-off switch belongs
@@ -10,11 +10,12 @@ option(FAMULUS_BUILD_SHELL "Build the shells (famulus_shell_cli, famulus_shell_w
 option(FAMULUS_WERROR "Treat compiler warnings as errors in first-party targets" ON)
 option(FAMULUS_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer (GCC/Clang only)" OFF)
 
-# Dependency population is a deliberate step, not a side effect of configure:
-# a checkout must be able to configure and build with no network at all. Flip
-# this on in a preset once a source actually needs json, asio, spdlog, sqlite3
-# or GTest.
-option(FAMULUS_FETCH_DEPS "Populate third-party dependencies with FetchContent" OFF)
+# Dependencies are populated by default: a checkout should build with one command
+# on any machine, and FetchContent is what makes that true. Turning this off
+# leaves the project configured for the day a dependency arrives from somewhere
+# else (a system package, a mirrored build/deps); it is not an offline mode,
+# because src/base needs spdlog.
+option(FAMULUS_FETCH_DEPS "Populate third-party dependencies with FetchContent" ON)
 
 # The platform adapter linked into famulusd. Left empty, FamulusPlatform picks the
 # host's adapter. This is a real option and not a hard-coded name on purpose:

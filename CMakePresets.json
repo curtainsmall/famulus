@@ -1,4 +1,4 @@
-﻿{
+{
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
@@ -12,7 +12,8 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "installDir": "${sourceDir}/build/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "FAMULUS_FETCH_DEPS": "ON"
       }
     },
     {
