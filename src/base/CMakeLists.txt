@@ -13,9 +13,8 @@ set(CMAKE_FOLDER "lib")
 
 famulus_library(famulus_base STATIC src)
 
-if(TARGET famulus_base)
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
-        target_include_directories(famulus_base PUBLIC
-            "${CMAKE_CURRENT_SOURCE_DIR}/include")
-    endif()
+if(NOT TARGET famulus_base)
+    # An empty layer is still a layer: consumers keep their link line and this
+    # becomes a real library the moment a source lands here.
+    add_library(famulus_base INTERFACE)
 endif()

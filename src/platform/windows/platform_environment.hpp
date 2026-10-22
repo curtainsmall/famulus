@@ -2,10 +2,9 @@
 //  platform_environment.hpp - what every capability needs from the daemon and
 //  from Win32
 //
-//  Owns the host table the daemon lent at init. The constructor is where the
-//  creating happens: it ensures the directories the daemon writes to, and
-//  records whether it worked. It cannot report anything - there is no host yet -
-//  so fam_platform_init turns that record into a status code.
+//  Owns the host table the daemon lent at creation. The constructor is where the
+//  creating happens: it ensures the directories the daemon writes to and records
+//  whether it worked, because it has no host to report to yet.
 // ============================================================================
 
 #pragma once
@@ -13,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-#include "famulus_platform.h"
+#include "platform_api.h"
 
 namespace Famulus::Windows
 {
@@ -26,10 +25,7 @@ namespace Famulus::Windows
         PlatformEnvironment(const PlatformEnvironment&) = delete;
         auto operator=(const PlatformEnvironment&) -> PlatformEnvironment& = delete;
 
-        static auto GetInstance() -> PlatformEnvironment&;
-
-        // The host table, or nullptr before init and after shutdown. Borrowed for
-        // the lifetime of the process.
+        // The host table, or nullptr before it is attached and after detaching.
         auto GetHost() const -> const struct fam_host*;
         void SetHost(const struct fam_host* host);
 

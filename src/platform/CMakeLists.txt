@@ -28,17 +28,15 @@ set(FAMULUS_PLATFORM_ADAPTER "famulus_platform_${FAMULUS_PLATFORM}")
 
 add_library(famulus_platform_api INTERFACE)
 
-if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/api")
-    target_include_directories(famulus_platform_api INTERFACE
-        "${CMAKE_CURRENT_SOURCE_DIR}/api")
-endif()
+target_include_directories(famulus_platform_api INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # The contract headers belong to an INTERFACE target, and an INTERFACE target
 # generates no IDE project - so without this they are invisible in the solution.
 # Attaching them to the adapter, the only project in this directory, puts them
 # where a reader looks for them.
 file(GLOB FAMULUS_PLATFORM_HEADERS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/api/*.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 # --- the selected adapter --------------------------------------------------
 
@@ -52,9 +50,11 @@ if(TARGET ${FAMULUS_PLATFORM_ADAPTER})
             "${CMAKE_CURRENT_SOURCE_DIR}/${FAMULUS_PLATFORM}/include")
     endif()
 
+    target_link_libraries(${FAMULUS_PLATFORM_ADAPTER} PRIVATE famulus_base)
+
     if(FAMULUS_PLATFORM_HEADERS)
         target_sources(${FAMULUS_PLATFORM_ADAPTER} PRIVATE ${FAMULUS_PLATFORM_HEADERS})
-        source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/api" PREFIX "api"
+        source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX ""
             FILES ${FAMULUS_PLATFORM_HEADERS})
     endif()
 

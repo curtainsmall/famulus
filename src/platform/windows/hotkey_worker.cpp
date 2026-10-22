@@ -195,10 +195,9 @@ namespace
 
 namespace Famulus::Windows
 {
-    auto HotkeyWorker::GetInstance() -> HotkeyWorker&
+    HotkeyWorker::HotkeyWorker(PlatformEnvironment& environment)
+        : Environment(environment)
     {
-        static HotkeyWorker instance;
-        return instance;
     }
 
     HotkeyWorker::~HotkeyWorker()
@@ -420,7 +419,7 @@ namespace Famulus::Windows
             return;
         }
 
-        const struct fam_host* host = PlatformEnvironment::GetInstance().GetHost();
+        const struct fam_host* host = Environment.GetHost();
 
         if (host == nullptr)
         {

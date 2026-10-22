@@ -32,17 +32,12 @@ namespace
 
 namespace Famulus::Windows
 {
-    SecretStore::SecretStore()
+    SecretStore::SecretStore(PlatformEnvironment& environment)
+        : Environment(environment)
     {
         // Nothing to create yet: the data directory belongs to the environment,
         // and the secrets subdirectory is ensured on first use, where a failure
         // can be reported to the host.
-    }
-
-    auto SecretStore::GetInstance() -> SecretStore&
-    {
-        static SecretStore instance;
-        return instance;
     }
 
     auto SecretStore::Set(std::string_view name, const void* data, size_t size) -> fam_status_t
@@ -148,17 +143,15 @@ namespace Famulus::Windows
         return true;
     }
 
-    auto SecretStore::EnsureSecretsDirectory() -> std::wstring
+    auto SecretStore::EnsureSecretsDirectory() const -> std::wstring
     {
-        PlatformEnvironment& environment = PlatformEnvironment::GetInstance();
-
-        if (!environment.EnsureDirectory(FAM_PATH_DATA))
+        if (!Environment.EnsureDirectory(FAM_PATH_DATA))
         {
-            environment.Log(3, "secret", "cannot create the data directory");
+            Environment.Log(3, "secret", "cannot create the data directory");
             return {};
         }
 
-        const std::wstring data_directory = environment.GetWidePathFor(FAM_PATH_DATA);
+        const std::wstring data_directory = Environment.GetWidePathFor(FAM_PATH_DATA);
 
         if (data_directory.empty())
         {
@@ -171,14 +164,14 @@ namespace Famulus::Windows
 
         if (::CreateDirectoryW(directory.c_str(), nullptr) == 0 && ::GetLastError() != ERROR_ALREADY_EXISTS)
         {
-            PlatformEnvironment::GetInstance().Log(3, "secret", "cannot create the secrets directory");
+            Environment.Log(3, "secret", "cannot create the secrets directory");
             return {};
         }
 
         return directory;
     }
 
-    auto SecretStore::GetFileFor(std::string_view name) -> std::wstring
+    auto SecretStore::GetFileFor(std::string_view name) const -> std::wstring
     {
         if (!IsValidName(name))
         {

@@ -86,12 +86,6 @@ namespace Famulus::Windows
         HostTable = nullptr;
     }
 
-    auto PlatformEnvironment::GetInstance() -> PlatformEnvironment&
-    {
-        static PlatformEnvironment instance;
-        return instance;
-    }
-
     auto PlatformEnvironment::GetHost() const -> const struct fam_host*
     {
         return HostTable;

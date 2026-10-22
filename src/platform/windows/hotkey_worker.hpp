@@ -1,14 +1,14 @@
 // ============================================================================
-//  HotkeyWorker.hpp - the thread and message-only window behind global hotkeys
+//  hotkey_worker.hpp - the thread and message-only window behind global hotkeys
 //
 //  RegisterHotKey reports only to the thread that called it, so registration
 //  lives on a worker thread with a message-only window. This class owns that
-//  thread, the window and the registration table; the ABI layer in hotkey.cpp
-//  only translates.
+//  thread, the window and the registration table.
 // ============================================================================
 
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
@@ -27,14 +27,16 @@
 
 #include <windows.h>
 
-#include "famulus_platform.h"
+#include "platform_api.h"
 
 namespace Famulus::Windows
 {
+    class PlatformEnvironment;
+
     class HotkeyWorker
     {
     public:
-        HotkeyWorker() = default;
+        explicit HotkeyWorker(PlatformEnvironment& environment);
         ~HotkeyWorker();
 
         HotkeyWorker(const HotkeyWorker&) = delete;
@@ -45,11 +47,8 @@ namespace Famulus::Windows
         auto Bind(std::string_view accelerator, uint32_t& out_id) -> fam_status_t;
         auto Unbind(uint32_t id) -> fam_status_t;
 
-        // Stops the thread and drops every registration. Called from shutdown,
-        // which promises that no event arrives afterwards.
+        // Stops the thread and drops every registration.
         void Stop();
-
-        static auto GetInstance() -> HotkeyWorker&;
 
     private:
         struct Binding
@@ -70,6 +69,8 @@ namespace Famulus::Windows
         void PostPress(uint32_t id);
 
         static auto CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT;
+
+        PlatformEnvironment& Environment;
 
         // Window and registration table: touched only on the worker thread.
         HWND WindowHandle = nullptr;

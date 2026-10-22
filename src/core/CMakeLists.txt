@@ -33,6 +33,10 @@ if(CORE_SOURCES)
 
     famulus_apply_warnings(famulus_core)
 
+    # Headers live next to their class, so the daemon can include
+    # "server/daemon_server.hpp" without a public/ tree.
+    target_include_directories(famulus_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
     target_link_libraries(famulus_core
         PUBLIC famulus_base famulus_proto
         PRIVATE famulus_platform_api)
