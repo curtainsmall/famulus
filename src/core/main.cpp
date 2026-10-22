@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 
+#include "logger.hpp"
 #include "server/daemon_server.hpp"
 #include "platform_api.h"
 
@@ -43,10 +44,20 @@ The daemon listens on a per-user named pipe; famulusctl talks to it.
         std::fwrite(line.data(), 1, line.size(), stderr);
     }
 
+    // Set once the platform has told us where the state directory is. Before
+    // that, and if the file cannot be opened, logging stays on stderr.
+    Famulus::Logger* logger = nullptr;
+
     // What the platform adapter may call back into. These are the only three
     // entry points core offers it, and they are all the adapter ever gets.
     void HostLog(int level, const char* category, const char* message)
     {
+        if (logger != nullptr)
+        {
+            logger->Write(level, category, message);
+            return;
+        }
+
         std::fprintf(stderr, "[%d %s] %s\n", level, category, message);
     }
 
@@ -111,6 +122,20 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // The state directory exists now, so the log can live in it.
+    const char* state_directory = nullptr;
+    std::string log_directory;
+
+    if (famGetPath(FAM_PATH_STATE, &state_directory) == FAM_OK && state_directory != nullptr)
+    {
+        log_directory = std::string(state_directory) + "\\logs";
+    }
+
+    Famulus::Logger file_logger(log_directory, "famulusd.log", 4u * 1024u * 1024u);
+    logger = &file_logger;
+
+    HostLog(0, "daemon", file_logger.IsOpen() ? "logging to the state directory" : "logging to stderr only");
+
     if (famCanListen() == 0)
     {
         famTerminate();
@@ -127,10 +152,12 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    PrintError("listening on the per-user endpoint, protocol 1");
+    HostLog(0, "daemon", "listening on the per-user endpoint, protocol 1");
 
     Famulus::DaemonServer server(listener);
     const int status = server.Run();
+
+    HostLog(0, "daemon", "stopped");
 
     // One call frees the listener and anything else the platform allocated.
     famTerminate();
