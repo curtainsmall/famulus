@@ -29,7 +29,7 @@ namespace Famulus::Windows
         auto GetHost() const -> const FamHost*;
         void SetHost(const FamHost* host);
 
-        void Log(int level, const char* category, const char* message) const;
+        void Log(FamLogLevel level, const char* category, const char* message) const;
 
         // Storage root for a path kind, no trailing separator. Empty when the
         // platform refused, which callers treat as "store nothing". GetPathFor

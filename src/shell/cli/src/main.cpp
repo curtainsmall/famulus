@@ -24,9 +24,16 @@ namespace
     constexpr std::string_view ProgramName = "famulusctl";
     constexpr auto ConnectTimeout = std::chrono::milliseconds{1000};
 
-    constexpr int ExitOk = 0;
-    constexpr int ExitError = 1;
-    constexpr int ExitNoDaemon = 2;
+    // Exit codes are the interface a script sees, so they are named here and no
+    // other line in this program is allowed to invent a number. Plain enum, not
+    // enum class: main returns int, and these are meant to convert straight into
+    // it without a cast at every return.
+    enum ExitCode
+    {
+        ExitOk = 0,
+        ExitError = 1,
+        ExitNoDaemon = 2,
+    };
 
     constexpr std::string_view UsageText = R"(famulusctl - talk to the famulus daemon
 
@@ -59,9 +66,9 @@ usage:
         return 0;
     }
 
-    auto Send(FamStream* stream, std::string_view request) -> int
+    auto Send(FamStream* stream, std::string_view request) -> ExitCode
     {
-        if (famWriteLine(stream, request.data(), request.size()) != FAM_OK)
+        if (famWriteLine(stream, request.data(), request.size()) != FamStatus_Ok)
         {
             PrintError("could not send the request");
             return ExitError;
@@ -70,7 +77,7 @@ usage:
         const char* reply = nullptr;
         size_t length = 0;
 
-        if (famReadLine(stream, &reply, &length) != FAM_OK)
+        if (famReadLine(stream, &reply, &length) != FamStatus_Ok)
         {
             PrintError("the daemon closed the connection without answering");
             return ExitError;
@@ -109,7 +116,7 @@ int main(int argc, char** argv)
     // platform events and never needs a clock.
     const FamHost host{sizeof(FamHost), nullptr, NoEvent, NoClock};
 
-    if (famInit(&host) != FAM_OK)
+    if (famInit(&host) != FamStatus_Ok)
     {
         PrintError("the platform adapter refused to start");
         return ExitError;
@@ -117,7 +124,7 @@ int main(int argc, char** argv)
 
     FamStream* stream = nullptr;
 
-    if (famConnect(static_cast<uint32_t>(ConnectTimeout.count()), &stream) != FAM_OK || stream == nullptr)
+    if (famConnect(static_cast<uint32_t>(ConnectTimeout.count()), &stream) != FamStatus_Ok || stream == nullptr)
     {
         famTerminate();
         PrintError("the daemon is not running");

@@ -29,19 +29,19 @@ extern "C"
     {
         if (host == nullptr || host->size < sizeof(FamHost) || host->post_event == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         if (Context != nullptr)
         {
-            return FAM_BUSY;
+            return FamStatus_Busy;
         }
 
         auto* created = new (std::nothrow) fam_context(host);
 
         if (created == nullptr)
         {
-            return FAM_NOMEM;
+            return FamStatus_NoMem;
         }
 
         if (!created->Environment.IsReady())
@@ -49,11 +49,11 @@ extern "C"
             // A daemon that cannot create its own directories should find out at
             // startup, not at the first write.
             delete created;
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
         Context = created;
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     void famTerminate(void)
@@ -74,14 +74,14 @@ extern "C"
             return 0;
         }
 
-        return static_cast<FamCapabilities>(FAM_CAP_PATHS | FAM_CAP_HOTKEY | FAM_CAP_SECRET);
+        return static_cast<FamCapabilities>(FamCapability_Paths | FamCapability_Hotkey | FamCapability_Secret);
     }
 
     FamStatus famGetLimits(FamLimits* out_limits)
     {
         if (Context == nullptr || out_limits == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         out_limits->notification_max_actions = 0; /* no notification channel yet */
@@ -89,38 +89,38 @@ extern "C"
         out_limits->frame_max_bytes = 4u * 1024u * 1024u;
         out_limits->schedule_min_granularity_ms = 60000; /* Task Scheduler granularity */
 
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     FamStatus famGetPath(FamPathKind kind, const char** out_path)
     {
         if (Context == nullptr || out_path == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         *out_path = nullptr;
 
-        if (kind != FAM_PATH_CONFIG && kind != FAM_PATH_DATA && kind != FAM_PATH_CACHE && kind != FAM_PATH_STATE)
+        if (kind != FamPathKind_Config && kind != FamPathKind_Data && kind != FamPathKind_Cache && kind != FamPathKind_State)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         if (!Context->Environment.EnsureDirectory(kind))
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
         *out_path = Context->Environment.GetPathView(kind);
 
-        return *out_path != nullptr ? FAM_OK : FAM_IO;
+        return *out_path != nullptr ? FamStatus_Ok : FamStatus_Io;
     }
 
     FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id)
     {
         if (Context == nullptr || accelerator == nullptr || out_id == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         return Context->Hotkeys.Bind(accelerator, *out_id);
@@ -130,7 +130,7 @@ extern "C"
     {
         if (Context == nullptr || id == 0)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         return Context->Hotkeys.Unbind(id);
@@ -140,7 +140,7 @@ extern "C"
     {
         if (Context == nullptr || name == nullptr || (data == nullptr && size != 0))
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         return Context->Secrets.Set(name, data, size);
@@ -150,7 +150,7 @@ extern "C"
     {
         if (Context == nullptr || name == nullptr || out_data == nullptr || out_len == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         return Context->Secrets.GetView(name, out_data, out_len);
@@ -160,7 +160,7 @@ extern "C"
     {
         if (Context == nullptr || name == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         return Context->Secrets.Delete(name);
@@ -175,14 +175,14 @@ extern "C"
     {
         if (Context == nullptr || out_listener == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         auto* listener = new (std::nothrow) FamListener{};
 
         if (listener == nullptr)
         {
-            return FAM_NOMEM;
+            return FamStatus_NoMem;
         }
 
         listener->Owner = Context;
@@ -190,25 +190,25 @@ extern "C"
         if (!listener->Current.Listen(Famulus::Windows::NamedPipe::DefaultName()))
         {
             delete listener;
-            return FAM_BUSY;
+            return FamStatus_Busy;
         }
 
         Context->Track(listener);
         *out_listener = listener;
 
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     FamStatus famAccept(FamListener* listener, FamStream** out_stream)
     {
         if (listener == nullptr || out_stream == nullptr || listener->Owner == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         if (!listener->Current.Accept())
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
         // Put a fresh instance in place before anyone can observe a moment with no
@@ -218,7 +218,7 @@ extern "C"
 
         if (!replacement.Open(served.GetName()))
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
         listener->Current = std::move(replacement);
@@ -227,47 +227,47 @@ extern "C"
 
         if (stream == nullptr)
         {
-            return FAM_NOMEM;
+            return FamStatus_NoMem;
         }
 
         listener->Owner->Track(stream);
         *out_stream = stream;
 
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream)
     {
         if (Context == nullptr || out_stream == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         Famulus::Windows::NamedPipe pipe;
 
         if (!pipe.Connect(Famulus::Windows::NamedPipe::DefaultName(), std::chrono::milliseconds{timeout_ms}))
         {
-            return FAM_DENIED;
+            return FamStatus_Denied;
         }
 
         auto* stream = new (std::nothrow) FamStream{Context, std::move(pipe)};
 
         if (stream == nullptr)
         {
-            return FAM_NOMEM;
+            return FamStatus_NoMem;
         }
 
         Context->Track(stream);
         *out_stream = stream;
 
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len)
     {
         if (stream == nullptr || out_text == nullptr || out_len == nullptr || stream->Owner == nullptr)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         *out_text = nullptr;
@@ -275,23 +275,23 @@ extern "C"
 
         if (!stream->Pipe.ReadLine(stream->Owner->LineScratch))
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
         *out_len = stream->Owner->LineScratch.size();
         *out_text = stream->Owner->LineScratch.data();
 
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 
     FamStatus famWriteLine(FamStream* stream, const char* text, size_t length)
     {
         if (stream == nullptr || (text == nullptr && length != 0))
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
-        return stream->Pipe.WriteLine(std::string_view(text, length)) ? FAM_OK : FAM_IO;
+        return stream->Pipe.WriteLine(std::string_view(text, length)) ? FamStatus_Ok : FamStatus_Io;
     }
 
     void famReleaseStream(FamStream* stream)

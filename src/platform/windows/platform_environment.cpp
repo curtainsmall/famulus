@@ -23,7 +23,7 @@ namespace
 {
     constexpr wchar_t AppDirectoryName[] = L"famulus";
 
-    constexpr FamPathKind AllPathKinds[] = {FAM_PATH_DATA, FAM_PATH_CONFIG, FAM_PATH_CACHE, FAM_PATH_STATE};
+    constexpr FamPathKind AllPathKinds[] = {FamPathKind_Data, FamPathKind_Config, FamPathKind_Cache, FamPathKind_State};
 
     // Storage roots are platform conventions, never guesses: a sandboxed or
     // roaming build moves them, and the daemon must not care.
@@ -31,11 +31,11 @@ namespace
     {
         switch (kind)
         {
-        case FAM_PATH_CONFIG:
+        case FamPathKind_Config:
             return L"APPDATA";
-        case FAM_PATH_DATA:
-        case FAM_PATH_CACHE:
-        case FAM_PATH_STATE:
+        case FamPathKind_Data:
+        case FamPathKind_Cache:
+        case FamPathKind_State:
             return L"LOCALAPPDATA";
         }
 
@@ -46,13 +46,13 @@ namespace
     {
         switch (kind)
         {
-        case FAM_PATH_CONFIG:
+        case FamPathKind_Config:
             return L"config";
-        case FAM_PATH_CACHE:
+        case FamPathKind_Cache:
             return L"cache";
-        case FAM_PATH_STATE:
+        case FamPathKind_State:
             return L"state";
-        case FAM_PATH_DATA:
+        case FamPathKind_Data:
             return L"data";
         }
 
@@ -110,7 +110,7 @@ namespace Famulus::Windows
         HostTable = host;
     }
 
-    void PlatformEnvironment::Log(int level, const char* category, const char* message) const
+    void PlatformEnvironment::Log(FamLogLevel level, const char* category, const char* message) const
     {
         if (HostTable != nullptr && HostTable->log != nullptr)
         {

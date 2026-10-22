@@ -24,11 +24,19 @@ namespace spdlog
 
 namespace Famulus
 {
+    // The three levels a log line can have. The numbers are fixed because the
+    // platform ABI numbers its own levels the same way; the two enums stay
+    // separate, since base may not include a platform header.
+    enum class LogLevel
+    {
+        Info = 0,
+        Warning = 1,
+        Error = 2,
+    };
+
     class Logger
     {
     public:
-        // Levels are the ones the host callback carries: 0 info, 1 warning,
-        // 2 error, everything else treated as info.
         Logger(std::string directory, std::string file_name, std::size_t max_bytes);
         ~Logger();
 
@@ -37,7 +45,7 @@ namespace Famulus
 
         // Appends one line to the file and echoes it to stderr, rotating when the
         // file passes the limit.
-        void Write(int level, std::string_view category, std::string_view message);
+        void Write(LogLevel level, std::string_view category, std::string_view message);
 
         // Whether the file could be opened; false leaves logging on stderr only.
         auto IsOpen() const -> bool;

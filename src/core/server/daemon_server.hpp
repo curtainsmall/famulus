@@ -34,9 +34,17 @@ namespace Famulus
         DaemonServer(const DaemonServer&) = delete;
         auto operator=(const DaemonServer&) -> DaemonServer& = delete;
 
+        // Why Run returned. Named instead of 0 and 1, so the caller never has to
+        // remember which number meant what.
+        enum class StopReason
+        {
+            Requested = 0,
+            AcceptFailed = 1,
+        };
+
         // Runs until a client asks for shutdown. One client at a time: a status
         // line does not need concurrency, and the daemon keeps one owner thread.
-        auto Run() -> int;
+        auto Run() -> StopReason;
 
     private:
         // Returns the reply line, and sets `shutdown` when the daemon should stop.

@@ -20,15 +20,15 @@ namespace Famulus
     {
     }
 
-    auto DaemonServer::Run() -> int
+    auto DaemonServer::Run() -> StopReason
     {
         while (true)
         {
             FamStream* client = nullptr;
 
-            if (famAccept(Listener, &client) != FAM_OK || client == nullptr)
+            if (famAccept(Listener, &client) != FamStatus_Ok || client == nullptr)
             {
-                return 1;
+                return StopReason::AcceptFailed;
             }
 
             bool shutdown = false;
@@ -39,7 +39,7 @@ namespace Famulus
                 const char* line = nullptr;
                 size_t length = 0;
 
-                if (famReadLine(client, &line, &length) != FAM_OK)
+                if (famReadLine(client, &line, &length) != FamStatus_Ok)
                 {
                     break; // client went away
                 }
@@ -54,7 +54,7 @@ namespace Famulus
 
             if (shutdown)
             {
-                return 0;
+                return StopReason::Requested;
             }
         }
     }

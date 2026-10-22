@@ -48,17 +48,36 @@ The daemon listens on a per-user named pipe; famulusctl talks to it.
     // that, and if the file cannot be opened, logging stays on stderr.
     Famulus::Logger* logger = nullptr;
 
+    // The one place the ABI's levels and the logger's levels meet. They are two
+    // enums because base may not include a platform header, so the bridge is a
+    // switch that has to name every case: a level added on either side is a
+    // compile error here rather than a line logged at the wrong volume.
+    constexpr auto ToLogLevel(FamLogLevel level) -> Famulus::LogLevel
+    {
+        switch (level)
+        {
+        case FamLogLevel_Info:
+            return Famulus::LogLevel::Info;
+        case FamLogLevel_Warning:
+            return Famulus::LogLevel::Warning;
+        case FamLogLevel_Error:
+            return Famulus::LogLevel::Error;
+        }
+
+        return Famulus::LogLevel::Info;
+    }
+
     // What the platform adapter may call back into. These are the only three
     // entry points core offers it, and they are all the adapter ever gets.
-    void HostLog(int level, const char* category, const char* message)
+    void HostLog(FamLogLevel level, const char* category, const char* message)
     {
         if (logger != nullptr)
         {
-            logger->Write(level, category, message);
+            logger->Write(ToLogLevel(level), category, message);
             return;
         }
 
-        std::fprintf(stderr, "[%d %s] %s\n", level, category, message);
+        std::fprintf(stderr, "[%d %s] %s\n", static_cast<int>(level), category, message);
     }
 
     void HostPostEvent(const FamEvent* event)
@@ -116,7 +135,7 @@ int main(int argc, char** argv)
 
     const FamHost host{sizeof(FamHost), HostLog, HostPostEvent, HostMonotonicMs};
 
-    if (famInit(&host) != FAM_OK)
+    if (famInit(&host) != FamStatus_Ok)
     {
         PrintError("the platform adapter refused to start");
         return 1;
@@ -126,7 +145,7 @@ int main(int argc, char** argv)
     const char* state_directory = nullptr;
     std::string log_directory;
 
-    if (famGetPath(FAM_PATH_STATE, &state_directory) == FAM_OK && state_directory != nullptr)
+    if (famGetPath(FamPathKind_State, &state_directory) == FamStatus_Ok && state_directory != nullptr)
     {
         log_directory = std::string(state_directory) + "\\logs";
     }
@@ -134,7 +153,7 @@ int main(int argc, char** argv)
     Famulus::Logger file_logger(log_directory, "famulusd.log", 4u * 1024u * 1024u);
     logger = &file_logger;
 
-    HostLog(0, "daemon", file_logger.IsOpen() ? "logging to the state directory" : "logging to stderr only");
+    HostLog(FamLogLevel_Info, "daemon", file_logger.IsOpen() ? "logging to the state directory" : "logging to stderr only");
 
     if (famCanListen() == 0)
     {
@@ -145,22 +164,22 @@ int main(int argc, char** argv)
 
     FamListener* listener = nullptr;
 
-    if (famListen(&listener) != FAM_OK || listener == nullptr)
+    if (famListen(&listener) != FamStatus_Ok || listener == nullptr)
     {
         famTerminate();
         PrintError("another famulusd is already running for this user");
         return 1;
     }
 
-    HostLog(0, "daemon", "listening on the per-user endpoint, protocol 1");
+    HostLog(FamLogLevel_Info, "daemon", "listening on the per-user endpoint, protocol 1");
 
     Famulus::DaemonServer server(listener);
-    const int status = server.Run();
+    const Famulus::DaemonServer::StopReason stop = server.Run();
 
-    HostLog(0, "daemon", "stopped");
+    HostLog(FamLogLevel_Info, "daemon", "stopped");
 
     // One call frees the listener and anything else the platform allocated.
     famTerminate();
 
-    return status;
+    return stop == Famulus::DaemonServer::StopReason::Requested ? 0 : 1;
 }

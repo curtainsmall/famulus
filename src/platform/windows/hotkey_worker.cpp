@@ -113,7 +113,7 @@ namespace
 
         if (text.empty())
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         std::vector<std::string_view> tokens;
@@ -135,7 +135,7 @@ namespace
 
         if (tokens.size() < 2)
         {
-            return FAM_INVALID; // a bare key would take that key from every app
+            return FamStatus_Invalid; // a bare key would take that key from every app
         }
 
         std::string key_name;
@@ -149,7 +149,7 @@ namespace
             {
                 if (!ParseKey(token, virtual_key))
                 {
-                    return FAM_INVALID;
+                    return FamStatus_Invalid;
                 }
 
                 key_name.assign(token);
@@ -179,17 +179,17 @@ namespace
             }
             else
             {
-                return FAM_INVALID;
+                return FamStatus_Invalid;
             }
         }
 
         if (!have_key || modifiers == 0)
         {
-            return FAM_INVALID;
+            return FamStatus_Invalid;
         }
 
         canonical += key_name;
-        return FAM_OK;
+        return FamStatus_Ok;
     }
 } // namespace
 
@@ -213,17 +213,17 @@ namespace Famulus::Windows
 
         const FamStatus parsed = ParseAccelerator(accelerator, modifiers, virtual_key, canonical);
 
-        if (parsed != FAM_OK)
+        if (parsed != FamStatus_Ok)
         {
             return parsed;
         }
 
         if (!Start())
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
-        FamStatus result = FAM_IO;
+        FamStatus result = FamStatus_Io;
         uint32_t id = 0;
 
         const std::function<void()> body = [&] {
@@ -231,20 +231,20 @@ namespace Famulus::Windows
 
             if (::RegisterHotKey(WindowHandle, static_cast<int>(id), modifiers, virtual_key) == 0)
             {
-                result = FAM_BUSY; // usually ERROR_HOTKEY_ALREADY_REGISTERED
+                result = FamStatus_Busy; // usually ERROR_HOTKEY_ALREADY_REGISTERED
                 return;
             }
 
             Bindings[id] = Binding{canonical};
-            result = FAM_OK;
+            result = FamStatus_Ok;
         };
 
         if (!RunOnThread(body))
         {
-            return FAM_IO;
+            return FamStatus_Io;
         }
 
-        if (result == FAM_OK)
+        if (result == FamStatus_Ok)
         {
             out_id = id;
         }
@@ -254,20 +254,20 @@ namespace Famulus::Windows
 
     auto HotkeyWorker::Unbind(uint32_t id) -> FamStatus
     {
-        FamStatus result = FAM_IO;
+        FamStatus result = FamStatus_Io;
 
         const std::function<void()> body = [&] {
             if (::UnregisterHotKey(WindowHandle, static_cast<int>(id)) == 0)
             {
-                result = FAM_INVALID;
+                result = FamStatus_Invalid;
                 return;
             }
 
             Bindings.erase(id);
-            result = FAM_OK;
+            result = FamStatus_Ok;
         };
 
-        return RunOnThread(body) ? result : FAM_IO;
+        return RunOnThread(body) ? result : FamStatus_Io;
     }
 
     void HotkeyWorker::Stop()

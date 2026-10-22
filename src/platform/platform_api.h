@@ -6,8 +6,10 @@
  *  compiler's ABI becomes part of the contract. Implementations may use whatever
  *  language they like behind these symbols.
  *
- *  Naming follows GLFW: one short prefix, PascalCase after it, upper case for the
- *  values. Types are typedef'd, so a caller never writes `struct` or `enum`.
+ *  Naming follows GLFW: one short prefix in PascalCase for types and functions.
+ *  An enum value is its enum's name plus the item - FamStatus_NoMem, not
+ *  FAM_NOMEM - so a value read on its own still says which enum it came from.
+ *  Types are typedef'd, so a caller never writes `struct` or `enum`.
  *
  *  The life of the platform follows GLFW as well: FamInit creates the one context
  *  the process has, FamTerminate frees it along with every handle still
@@ -22,7 +24,7 @@
  *     host->post_event. They must only enqueue, must never wait on the daemon,
  *     and must return in well under a millisecond.
  *  4. Outputs are written into caller-provided buffers: capacity in, required
- *     length out, FAM_NOMEM when the capacity was short. Inputs are borrowed for
+ *     length out, FamStatus_NoMem when the capacity was short. Inputs are borrowed for
  *     the duration of the call.
  * ========================================================================== */
 
@@ -42,24 +44,24 @@ extern "C"
 
 typedef enum FamStatus
 {
-    FAM_OK = 0,
-    FAM_UNSUPPORTED = -1, /* this platform has no such capability */
-    FAM_DENIED = -2,      /* the platform refused: permission not granted */
-    FAM_INVALID = -3,     /* bad argument */
-    FAM_NOMEM = -4,       /* caller buffer too small; inout_len holds the need */
-    FAM_IO = -5,
-    FAM_BUSY = -6         /* already taken: another daemon, another hotkey */
+    FamStatus_Ok = 0,
+    FamStatus_Unsupported = -1, /* this platform has no such capability */
+    FamStatus_Denied = -2,      /* the platform refused: permission not granted */
+    FamStatus_Invalid = -3,     /* bad argument */
+    FamStatus_NoMem = -4,       /* caller buffer too small; inout_len holds the need */
+    FamStatus_Io = -5,
+    FamStatus_Busy = -6         /* already taken: another daemon, another hotkey */
 } FamStatus;
 
 typedef enum FamCapability
 {
-    FAM_CAP_PATHS = 1u << 0, /* FamGetPath is meaningful */
-    FAM_CAP_HOTKEY = 1u << 1,
-    FAM_CAP_NOTIFY = 1u << 2,
-    FAM_CAP_SCHEDULE = 1u << 3,
-    FAM_CAP_SECRET = 1u << 4,
-    FAM_CAP_CLIPBOARD = 1u << 5,
-    FAM_CAP_CAPTURE = 1u << 6
+    FamCapability_Paths = 1u << 0, /* FamGetPath is meaningful */
+    FamCapability_Hotkey = 1u << 1,
+    FamCapability_Notify = 1u << 2,
+    FamCapability_Schedule = 1u << 3,
+    FamCapability_Secret = 1u << 4,
+    FamCapability_Clipboard = 1u << 5,
+    FamCapability_Capture = 1u << 6
 } FamCapability;
 
 typedef uint32_t FamCapabilities;
@@ -82,23 +84,34 @@ typedef struct FamEvent
     int64_t wall_ms;
 } FamEvent;
 
+/* How loud a line is. A named enum rather than a bare int: an int invites
+ * numbers that mean nothing, and the first version of this header already
+ * collected one - the Windows adapter logged level 3, which no reader could
+ * interpret. */
+typedef enum FamLogLevel
+{
+    FamLogLevel_Info = 0,
+    FamLogLevel_Warning = 1,
+    FamLogLevel_Error = 2
+} FamLogLevel;
+
 /* What the daemon lends to the platform. Append only; never reorder. An
  * implementation checks `size` before touching an optional entry. */
 typedef struct FamHost
 {
     uint32_t size; /* sizeof(FamHost) */
 
-    void (*log)(int level, const char* category, const char* message);
+    void (*log)(FamLogLevel level, const char* category, const char* message);
     void (*post_event)(const FamEvent* event); /* thread safe, never blocks */
     int64_t (*monotonic_ms)(void);
 } FamHost;
 
 typedef enum FamPathKind
 {
-    FAM_PATH_DATA = 0, /* durable state: sessions, artifacts, schedule table */
-    FAM_PATH_CONFIG = 1,
-    FAM_PATH_CACHE = 2,
-    FAM_PATH_STATE = 3
+    FamPathKind_Data = 0, /* durable state: sessions, artifacts, schedule table */
+    FamPathKind_Config = 1,
+    FamPathKind_Cache = 2,
+    FamPathKind_State = 3
 } FamPathKind;
 
 /* One line in, one line out, UTF-8, terminated by '\n'. The framing is part of
@@ -113,7 +126,7 @@ typedef struct FamStream FamStream;
 
 /* Creates the one context the process has: storage roots, the hotkey worker, the
  * secret store. `host` is borrowed, not copied, so it must outlive the platform.
- * Calling it twice is FAM_BUSY; the first call owns the process. */
+ * Calling it twice is FamStatus_Busy; the first call owns the process. */
 FamStatus famInit(const FamHost* host);
 
 /* Frees everything, including handles the caller did not release. No event may
@@ -144,8 +157,8 @@ FamStatus famBindHotkey(const char* accelerator, uint32_t* out_id);
 FamStatus famUnbindHotkey(uint32_t id);
 
 /* Secret storage. `name` is 1..64 characters of [A-Za-z0-9._-]; anything else is
- * FAM_INVALID, so a name can never escape its directory. Values are opaque bytes,
- * encrypted at rest by the platform. A missing secret is FAM_DENIED. */
+ * FamStatus_Invalid, so a name can never escape its directory. Values are opaque bytes,
+ * encrypted at rest by the platform. A missing secret is FamStatus_Denied. */
 FamStatus famSetSecret(const char* name, const void* data, size_t size);
 FamStatus famGetSecret(const char* name, const unsigned char** out_data, size_t* out_len);
 FamStatus famDeleteSecret(const char* name);
@@ -156,7 +169,7 @@ FamStatus famDeleteSecret(const char* name);
  * none, and the daemon should say that rather than report a second instance. */
 int famCanListen(void);
 
-/* Takes the per-user endpoint. FAM_BUSY when another daemon holds it, which is
+/* Takes the per-user endpoint. FamStatus_Busy when another daemon holds it, which is
  * also how single instance is enforced. The listener belongs to the context. */
 FamStatus famListen(FamListener** out_listener);
 
@@ -164,7 +177,7 @@ FamStatus famListen(FamListener** out_listener);
  * let FamTerminate sweep it. */
 FamStatus famAccept(FamListener* listener, FamStream** out_stream);
 
-/* Client side. FAM_DENIED when nothing is listening within the timeout. */
+/* Client side. FamStatus_Denied when nothing is listening within the timeout. */
 FamStatus famConnect(uint32_t timeout_ms, FamStream** out_stream);
 
 FamStatus famReadLine(FamStream* stream, const char** out_text, size_t* out_len);
